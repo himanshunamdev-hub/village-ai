@@ -1,0 +1,2769 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Village AI</title>
+
+  <style>
+
+    :root {
+      --theme-color: #267a35;
+
+      --bg: #ffffff;
+      --sidebar: #f7f8f7;
+      --card: #ffffff;
+
+      --text: #202124;
+      --muted: #6b7280;
+
+      --border: #e5e7eb;
+
+      --user-message: #267a35;
+      --user-text: #ffffff;
+
+      --assistant-message: #f1f3f1;
+
+      --shadow:
+        0 10px 30px rgba(0, 0, 0, 0.08);
+    }
+
+
+    /* =========================
+       DARK MODE
+    ========================== */
+
+    body.dark {
+
+      --bg: #111412;
+      --sidebar: #171b18;
+      --card: #1b201d;
+
+      --text: #f5f5f5;
+      --muted: #a8b0aa;
+
+      --border: #2b332e;
+
+      --assistant-message: #252b27;
+
+      --shadow:
+        0 10px 30px rgba(0, 0, 0, 0.35);
+    }
+
+
+    /* =========================
+       RESET
+    ========================== */
+
+    * {
+      box-sizing: border-box;
+    }
+
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+
+      width: 100%;
+      height: 100%;
+
+      font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+      background: var(--bg);
+      color: var(--text);
+    }
+
+
+    body {
+      display: flex;
+      overflow: hidden;
+
+      transition:
+        background 0.25s ease,
+        color 0.25s ease;
+    }
+
+
+    button,
+    textarea,
+    select {
+      font-family: inherit;
+    }
+
+
+    button {
+      cursor: pointer;
+    }
+
+
+    /* =========================
+       SIDEBAR
+    ========================== */
+
+    .sidebar {
+
+      width: 250px;
+      height: 100vh;
+
+      background: var(--sidebar);
+
+      border-right:
+        1px solid var(--border);
+
+      padding: 22px 16px;
+
+      display: flex;
+      flex-direction: column;
+
+      transition:
+        background 0.25s ease;
+    }
+
+
+    .logo {
+
+      color: var(--theme-color);
+
+      font-size: 22px;
+      font-weight: 700;
+
+      padding:
+        8px 10px 20px;
+    }
+
+
+    .new-chat {
+
+      border: 1px solid var(--border);
+
+      background: var(--card);
+
+      color: var(--text);
+
+      border-radius: 10px;
+
+      padding: 12px 14px;
+
+      font-size: 15px;
+      font-weight: 600;
+
+      text-align: left;
+
+      transition: 0.2s;
+    }
+
+
+    .new-chat:hover {
+
+      border-color:
+        var(--theme-color);
+
+      color:
+        var(--theme-color);
+    }
+
+
+    .sidebar-bottom {
+
+      margin-top: auto;
+
+      padding: 15px 10px;
+
+      color: var(--muted);
+
+      font-size: 13px;
+
+      line-height: 1.6;
+    }
+
+
+    /* =========================
+       MAIN
+    ========================== */
+
+    .main {
+
+      flex: 1;
+
+      height: 100vh;
+
+      display: flex;
+      flex-direction: column;
+
+      min-width: 0;
+
+      background: var(--bg);
+    }
+
+
+    /* =========================
+       TOPBAR
+    ========================== */
+
+    .topbar {
+
+      height: 64px;
+
+      padding:
+        0 22px;
+
+      display: flex;
+
+      align-items: center;
+
+      justify-content: space-between;
+
+      border-bottom:
+        1px solid var(--border);
+
+      position: relative;
+
+      flex-shrink: 0;
+    }
+
+
+    .topbar-title {
+
+      font-size: 18px;
+
+      font-weight: 700;
+
+      color: var(--theme-color);
+    }
+
+
+    .topbar-actions {
+
+      display: flex;
+
+      align-items: center;
+    }
+
+
+    .icon-btn {
+
+      width: 42px;
+      height: 42px;
+
+      border: 1px solid var(--border);
+
+      border-radius: 10px;
+
+      background: var(--card);
+
+      color: var(--text);
+
+      font-size: 20px;
+
+      transition: 0.2s;
+    }
+
+
+    .icon-btn:hover {
+
+      border-color:
+        var(--theme-color);
+
+      transform:
+        translateY(-1px);
+    }
+
+
+    /* =========================
+       SETTINGS
+    ========================== */
+
+    .settings-panel {
+
+      position: absolute;
+
+      top: 58px;
+      right: 18px;
+
+      width: 350px;
+
+      max-height:
+        calc(100vh - 80px);
+
+      overflow-y: auto;
+
+      background: var(--card);
+
+      border:
+        1px solid var(--border);
+
+      border-radius: 16px;
+
+      box-shadow: var(--shadow);
+
+      padding: 10px;
+
+      z-index: 1000;
+
+      opacity: 0;
+
+      visibility: hidden;
+
+      transform:
+        translateY(-8px);
+
+      transition:
+        opacity 0.2s ease,
+        transform 0.2s ease,
+        visibility 0.2s;
+    }
+
+
+    .settings-panel.active {
+
+      opacity: 1;
+
+      visibility: visible;
+
+      transform:
+        translateY(0);
+    }
+
+
+    .settings-title {
+
+      padding:
+        14px 12px;
+
+      font-size: 18px;
+
+      font-weight: 700;
+
+      border-bottom:
+        1px solid var(--border);
+
+      margin-bottom: 4px;
+    }
+
+
+    .setting-item {
+
+      display: flex;
+
+      align-items: center;
+
+      justify-content: space-between;
+
+      gap: 15px;
+
+      padding: 14px 12px;
+
+      border-radius: 10px;
+
+      transition: 0.2s;
+    }
+
+
+    .setting-item:hover {
+
+      background:
+        rgba(128, 128, 128, 0.08);
+    }
+
+
+    .setting-left {
+
+      display: flex;
+
+      align-items: center;
+
+      gap: 12px;
+
+      min-width: 0;
+    }
+
+
+    .setting-icon {
+
+      width: 36px;
+      height: 36px;
+
+      display: flex;
+
+      align-items: center;
+
+      justify-content: center;
+
+      background:
+        rgba(128, 128, 128, 0.1);
+
+      border-radius: 9px;
+
+      flex-shrink: 0;
+    }
+
+
+    .setting-label {
+
+      font-size: 14px;
+
+      font-weight: 600;
+    }
+
+
+    .setting-description {
+
+      color: var(--muted);
+
+      font-size: 12px;
+
+      margin-top: 3px;
+    }
+
+
+    /* =========================
+       SWITCH
+    ========================== */
+
+    .switch {
+
+      position: relative;
+
+      width: 44px;
+      height: 24px;
+
+      flex-shrink: 0;
+    }
+
+
+    .switch input {
+
+      opacity: 0;
+
+      width: 0;
+      height: 0;
+    }
+
+
+    .slider {
+
+      position: absolute;
+
+      inset: 0;
+
+      background: #9ca3af;
+
+      border-radius: 30px;
+
+      transition: 0.25s;
+    }
+
+
+    .slider:before {
+
+      content: "";
+
+      position: absolute;
+
+      width: 18px;
+      height: 18px;
+
+      left: 3px;
+      top: 3px;
+
+      background: white;
+
+      border-radius: 50%;
+
+      transition: 0.25s;
+    }
+
+
+    .switch input:checked + .slider {
+
+      background:
+        var(--theme-color);
+    }
+
+
+    .switch input:checked + .slider:before {
+
+      transform:
+        translateX(20px);
+    }
+
+
+    /* =========================
+       SELECT
+    ========================== */
+
+    .setting-select {
+
+      padding:
+        7px 10px;
+
+      border:
+        1px solid var(--border);
+
+      border-radius: 8px;
+
+      background: var(--card);
+
+      color: var(--text);
+
+      outline: none;
+    }
+
+
+    /* =========================
+       THEMES
+    ========================== */
+
+    .theme-colors {
+
+      display: flex;
+
+      gap: 7px;
+    }
+
+
+    .theme-color {
+
+      width: 23px;
+      height: 23px;
+
+      border-radius: 50%;
+
+      border: 2px solid var(--card);
+
+      box-shadow:
+        0 0 0 1px var(--border);
+
+      cursor: pointer;
+
+      transition: 0.2s;
+    }
+
+
+    .theme-color:hover {
+
+      transform:
+        scale(1.15);
+    }
+
+
+    .theme-green {
+      background: #267a35;
+    }
+
+
+    .theme-blue {
+      background: #2563eb;
+    }
+
+
+    .theme-purple {
+      background: #7c3aed;
+    }
+
+
+    .theme-orange {
+      background: #ea580c;
+    }
+
+
+    /* =========================
+       MESSAGES
+    ========================== */
+
+    .messages {
+
+      flex: 1;
+
+      overflow-y: auto;
+
+      padding:
+        35px 20px 170px;
+    }
+
+
+    .welcome {
+
+      min-height:
+        calc(100vh - 260px);
+
+      display: flex;
+
+      flex-direction: column;
+
+      align-items: center;
+
+      justify-content: center;
+
+      text-align: center;
+    }
+
+
+    .welcome-icon {
+
+      width: 70px;
+      height: 70px;
+
+      display: flex;
+
+      align-items: center;
+
+      justify-content: center;
+
+      border-radius: 20px;
+
+      background:
+        color-mix(
+          in srgb,
+          var(--theme-color) 12%,
+          transparent
+        );
+
+      font-size: 38px;
+
+      margin-bottom: 18px;
+    }
+
+
+    .welcome h1 {
+
+      margin: 0;
+
+      font-size: 30px;
+    }
+
+
+    .welcome p {
+
+      color: var(--muted);
+
+      margin-top: 10px;
+
+      font-size: 15px;
+    }
+
+
+    /* =========================
+       MESSAGE ROW
+    ========================== */
+
+    .message-row {
+
+      display: flex;
+
+      width: 100%;
+
+      margin:
+        14px 0;
+    }
+
+
+    .message-row.user {
+
+      justify-content: flex-end;
+    }
+
+
+    .message-row.assistant {
+
+      justify-content: flex-start;
+    }
+
+
+    .message {
+
+      max-width: min(75%, 760px);
+
+      padding:
+        12px 15px;
+
+      border-radius: 15px;
+
+      line-height: 1.55;
+
+      font-size: 15px;
+
+      white-space: pre-wrap;
+
+      word-wrap: break-word;
+    }
+
+
+    .message.user {
+
+      background:
+        var(--user-message);
+
+      color:
+        var(--user-text);
+
+      border-bottom-right-radius: 5px;
+    }
+
+
+    .message.assistant {
+
+      background:
+        var(--assistant-message);
+
+      color:
+        var(--text);
+
+      border-bottom-left-radius: 5px;
+    }
+
+
+    /* =========================
+       INPUT
+    ========================== */
+
+    .input-area {
+
+      position: fixed;
+
+      bottom: 0;
+
+      left: 250px;
+      right: 0;
+
+      padding:
+        15px 20px 18px;
+
+      background:
+        linear-gradient(
+          to top,
+          var(--bg) 75%,
+          transparent
+        );
+
+      z-index: 50;
+    }
+
+
+    .input-box {
+
+      max-width: 900px;
+
+      margin: 0 auto;
+
+      display: flex;
+
+      align-items: flex-end;
+
+      gap: 8px;
+
+      padding:
+        8px 8px 8px 15px;
+
+      background:
+        var(--card);
+
+      border:
+        1px solid var(--border);
+
+      border-radius: 16px;
+
+      box-shadow:
+        0 5px 20px
+        rgba(0, 0, 0, 0.06);
+    }
+
+
+    #userInput {
+
+      flex: 1;
+
+      resize: none;
+
+      max-height: 150px;
+
+      min-height: 42px;
+
+      padding:
+        10px 0;
+
+      border: none;
+
+      outline: none;
+
+      background: transparent;
+
+      color: var(--text);
+
+      font-size: 15px;
+
+      line-height: 1.5;
+    }
+
+
+    #userInput::placeholder {
+
+      color: var(--muted);
+    }
+
+
+    .input-buttons {
+
+      display: flex;
+
+      gap: 6px;
+
+      align-items: center;
+    }
+
+
+    .mic-btn,
+    .send-btn {
+
+      width: 40px;
+      height: 40px;
+
+      border: none;
+
+      border-radius: 10px;
+
+      display: flex;
+
+      align-items: center;
+
+      justify-content: center;
+
+      font-size: 18px;
+
+      transition: 0.2s;
+    }
+
+
+    .mic-btn {
+
+      background:
+        rgba(128, 128, 128, 0.1);
+
+      color: var(--text);
+    }
+
+
+    .mic-btn:hover {
+
+      background:
+        rgba(128, 128, 128, 0.2);
+    }
+
+
+    .mic-btn.listening {
+
+      background: #dc2626;
+
+      color: white;
+
+      animation:
+        pulse 1s infinite;
+    }
+
+
+    .send-btn {
+
+      background:
+        var(--theme-color);
+
+      color: white;
+
+      font-size: 22px;
+    }
+
+
+    .send-btn:hover {
+
+      filter: brightness(0.9);
+
+      transform:
+        translateY(-1px);
+    }
+
+
+    .notice {
+
+      max-width: 900px;
+
+      margin:
+        8px auto 0;
+
+      text-align: center;
+
+      color: var(--muted);
+
+      font-size: 11px;
+    }
+
+
+    /* =========================
+       MODAL
+    ========================== */
+
+    .modal-overlay {
+
+      position: fixed;
+
+      inset: 0;
+
+      background:
+        rgba(0, 0, 0, 0.55);
+
+      display: flex;
+
+      align-items: center;
+
+      justify-content: center;
+
+      padding: 20px;
+
+      z-index: 2000;
+
+      opacity: 0;
+
+      visibility: hidden;
+
+      transition: 0.2s;
+    }
+
+
+    .modal-overlay.active {
+
+      opacity: 1;
+
+      visibility: visible;
+    }
+
+
+    .modal {
+
+      width: min(500px, 100%);
+
+      background:
+        var(--card);
+
+      color:
+        var(--text);
+
+      border:
+        1px solid var(--border);
+
+      border-radius: 18px;
+
+      padding: 25px;
+
+      box-shadow:
+        0 20px 60px
+        rgba(0, 0, 0, 0.25);
+    }
+
+
+    .modal h2 {
+
+      margin-top: 0;
+    }
+
+
+    .modal p {
+
+      color: var(--muted);
+
+      line-height: 1.7;
+    }
+
+
+    .modal-close {
+
+      border: none;
+
+      background:
+        var(--theme-color);
+
+      color: white;
+
+      padding:
+        10px 18px;
+
+      border-radius: 9px;
+
+      margin-top: 10px;
+    }
+
+
+    /* =========================
+       ANIMATION
+    ========================== */
+
+    @keyframes pulse {
+
+      0% {
+        box-shadow:
+          0 0 0 0
+          rgba(220, 38, 38, 0.5);
+      }
+
+      70% {
+        box-shadow:
+          0 0 0 10px
+          rgba(220, 38, 38, 0);
+      }
+
+      100% {
+        box-shadow:
+          0 0 0 0
+          rgba(220, 38, 38, 0);
+      }
+
+    }
+
+
+    /* =========================
+       MOBILE
+    ========================== */
+
+    @media (max-width: 700px) {
+
+      .sidebar {
+
+        width: 72px;
+
+        padding:
+          15px 8px;
+      }
+
+
+      .logo {
+
+        font-size: 0;
+
+        text-align: center;
+      }
+
+
+      .logo::after {
+
+        content: "🌾";
+
+        font-size: 25px;
+      }
+
+
+      .new-chat {
+
+        font-size: 0;
+
+        text-align: center;
+
+        padding: 12px 5px;
+      }
+
+
+      .new-chat::before {
+
+        content: "＋";
+
+        font-size: 22px;
+      }
+
+
+      .sidebar-bottom {
+
+        display: none;
+      }
+
+
+      .input-area {
+
+        left: 72px;
+
+        padding:
+          10px;
+      }
+
+
+      .settings-panel {
+
+        right: 10px;
+
+        width:
+          min(350px, calc(100vw - 90px));
+      }
+
+
+      .message {
+
+        max-width: 88%;
+      }
+
+
+      .welcome h1 {
+
+        font-size: 24px;
+      }
+
+    }
+
+
+  </style>
+
+</head>
+
+
+<body>
+
+
+  <!-- =========================
+       SIDEBAR
+  ========================== -->
+
+  <aside class="sidebar">
+
+    <div class="logo">
+      🌾 Village AI
+    </div>
+
+
+    <button
+      class="new-chat"
+      onclick="newChat()"
+    >
+      ＋ New chat
+    </button>
+
+
+    <div class="sidebar-bottom">
+
+      Village AI
+      <br>
+
+      Your personal AI assistant
+
+    </div>
+
+  </aside>
+
+
+  <!-- =========================
+       MAIN
+  ========================== -->
+
+  <main class="main">
+
+
+    <!-- =========================
+         TOPBAR
+    ========================== -->
+
+    <div class="topbar">
+
+      <div class="topbar-title">
+        🌾 Village AI
+      </div>
+
+
+      <div class="topbar-actions">
+
+        <button
+          class="icon-btn"
+          onclick="toggleSettings()"
+          title="Settings"
+        >
+          ⚙️
+        </button>
+
+      </div>
+
+
+      <!-- =========================
+           SETTINGS
+      ========================== -->
+
+      <div
+        class="settings-panel"
+        id="settingsPanel"
+      >
+
+        <div class="settings-title">
+          ⚙️ Settings
+        </div>
+
+
+        <!-- DARK MODE -->
+
+        <div class="setting-item">
+
+          <div class="setting-left">
+
+            <div class="setting-icon">
+              🌞
+            </div>
+
+            <div>
+
+              <div class="setting-label">
+                Daylight / Dark mode
+              </div>
+
+              <div class="setting-description">
+                Change appearance
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <label class="switch">
+
+            <input
+              type="checkbox"
+              id="darkModeToggle"
+              onchange="toggleDarkMode()"
+            >
+
+            <span class="slider"></span>
+
+          </label>
+
+        </div>
+
+
+        <!-- LANGUAGE -->
+
+        <div class="setting-item">
+
+          <div class="setting-left">
+
+            <div class="setting-icon">
+              🌐
+            </div>
+
+            <div>
+
+              <div class="setting-label">
+                Language
+              </div>
+
+              <div class="setting-description">
+                Hindi / English
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <select
+            class="setting-select"
+            id="languageSelect"
+            onchange="changeLanguage()"
+          >
+
+            <option value="en">
+              English
+            </option>
+
+            <option value="hi">
+              हिंदी
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <!-- VOICE RESPONSE -->
+
+        <div class="setting-item">
+
+          <div class="setting-left">
+
+            <div class="setting-icon">
+              🔊
+            </div>
+
+            <div>
+
+              <div class="setting-label">
+                Voice response
+              </div>
+
+              <div class="setting-description">
+                Speak AI responses
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <label class="switch">
+
+            <input
+              type="checkbox"
+              id="voiceResponseToggle"
+              onchange="saveSettings()"
+            >
+
+            <span class="slider"></span>
+
+          </label>
+
+        </div>
+
+
+        <!-- CLEAR CHAT -->
+
+        <div
+          class="setting-item"
+          onclick="clearChat()"
+        >
+
+          <div class="setting-left">
+
+            <div class="setting-icon">
+              🧹
+            </div>
+
+            <div>
+
+              <div class="setting-label">
+                Clear chat
+              </div>
+
+              <div class="setting-description">
+                Delete current conversation
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <!-- CHAT HISTORY -->
+
+        <div
+          class="setting-item"
+          onclick="showHistory()"
+        >
+
+          <div class="setting-left">
+
+            <div class="setting-icon">
+              💾
+            </div>
+
+            <div>
+
+              <div class="setting-label">
+                Chat history
+              </div>
+
+              <div class="setting-description">
+                Saved in this browser
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <!-- THEME -->
+
+        <div class="setting-item">
+
+          <div class="setting-left">
+
+            <div class="setting-icon">
+              🎨
+            </div>
+
+            <div>
+
+              <div class="setting-label">
+                Theme
+              </div>
+
+              <div class="setting-description">
+                Choose accent color
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div class="theme-colors">
+
+            <div
+              class="theme-color theme-green"
+              onclick="setTheme('#267a35')"
+              title="Green"
+            ></div>
+
+            <div
+              class="theme-color theme-blue"
+              onclick="setTheme('#2563eb')"
+              title="Blue"
+            ></div>
+
+            <div
+              class="theme-color theme-purple"
+              onclick="setTheme('#7c3aed')"
+              title="Purple"
+            ></div>
+
+            <div
+              class="theme-color theme-orange"
+              onclick="setTheme('#ea580c')"
+              title="Orange"
+            ></div>
+
+          </div>
+
+        </div>
+
+
+        <!-- ABOUT -->
+
+        <div
+          class="setting-item"
+          onclick="showAbout()"
+        >
+
+          <div class="setting-left">
+
+            <div class="setting-icon">
+              ℹ️
+            </div>
+
+            <div>
+
+              <div class="setting-label">
+                About Village AI
+              </div>
+
+              <div class="setting-description">
+                About this assistant
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- =========================
+         MESSAGES
+    ========================== -->
+
+    <div
+      class="messages"
+      id="messages"
+    >
+
+      <div
+        class="welcome"
+        id="welcome"
+      >
+
+        <div class="welcome-icon">
+          🌾
+        </div>
+
+
+        <h1 id="welcomeTitle">
+          How can I help you?
+        </h1>
+
+
+        <p id="welcomeText">
+          Ask anything to Village AI
+        </p>
+
+      </div>
+
+    </div>
+
+
+    <!-- =========================
+         INPUT
+    ========================== -->
+
+    <div class="input-area">
+
+      <div class="input-box">
+
+        <textarea
+          id="userInput"
+          placeholder="Message Village AI..."
+          rows="1"
+          onkeydown="handleKey(event)"
+        ></textarea>
+
+
+        <div class="input-buttons">
+
+          <button
+            class="mic-btn"
+            id="micBtn"
+            onclick="startVoiceInput()"
+            title="Voice input"
+          >
+            🎤
+          </button>
+
+
+          <button
+            class="send-btn"
+            id="sendBtn"
+            onclick="sendMessage()"
+            title="Send"
+          >
+            ↑
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <div
+        class="notice"
+        id="notice"
+      >
+        Village AI can make mistakes.
+        Check important information.
+      </div>
+
+    </div>
+
+
+  </main>
+
+
+  <!-- =========================
+       ABOUT MODAL
+  ========================== -->
+
+  <div
+    class="modal-overlay"
+    id="aboutModal"
+    onclick="closeModal(event)"
+  >
+
+    <div class="modal">
+
+      <h2>
+        🌾 About Village AI
+      </h2>
+
+
+      <p id="aboutText">
+
+        Village AI is your personal AI assistant.
+        You can chat with it, use voice input,
+        hear voice responses, change language,
+        switch themes and save your chat history.
+
+      </p>
+
+
+      <button
+        class="modal-close"
+        onclick="closeAbout()"
+      >
+        Close
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <!-- =========================
+       JAVASCRIPT
+  ========================== -->
+
+  <script>
+
+
+    const messages =
+      document.getElementById("messages");
+
+    const userInput =
+      document.getElementById("userInput");
+
+    const settingsPanel =
+      document.getElementById("settingsPanel");
+
+    const darkModeToggle =
+      document.getElementById("darkModeToggle");
+
+    const voiceResponseToggle =
+      document.getElementById(
+        "voiceResponseToggle"
+      );
+
+    const languageSelect =
+      document.getElementById(
+        "languageSelect"
+      );
+
+
+    let currentLanguage =
+      localStorage.getItem(
+        "village_language"
+      ) || "en";
+
+
+    let recognition = null;
+
+    let isListening = false;
+
+
+    /* =========================
+       PAGE LOAD
+    ========================== */
+
+    window.addEventListener(
+      "load",
+      function () {
+
+        loadSettings();
+
+        loadTheme();
+
+        loadChat();
+
+        userInput.focus();
+
+      }
+    );
+
+
+    /* =========================
+       SETTINGS
+    ========================== */
+
+    function toggleSettings() {
+
+      settingsPanel.classList.toggle(
+        "active"
+      );
+
+    }
+
+
+    document.addEventListener(
+      "click",
+      function (event) {
+
+        const button =
+          document.querySelector(
+            ".topbar-actions .icon-btn"
+          );
+
+
+        if (
+          settingsPanel.classList.contains(
+            "active"
+          ) &&
+          !settingsPanel.contains(
+            event.target
+          ) &&
+          !button.contains(
+            event.target
+          )
+        ) {
+
+          settingsPanel.classList.remove(
+            "active"
+          );
+
+        }
+
+      }
+    );
+
+
+    /* =========================
+       DARK MODE
+    ========================== */
+
+    function toggleDarkMode() {
+
+      const enabled =
+        darkModeToggle.checked;
+
+
+      document.body.classList.toggle(
+        "dark",
+        enabled
+      );
+
+
+      localStorage.setItem(
+        "village_dark_mode",
+        enabled
+      );
+
+    }
+
+
+    /* =========================
+       LANGUAGE
+    ========================== */
+
+    function changeLanguage() {
+
+      currentLanguage =
+        languageSelect.value;
+
+
+      localStorage.setItem(
+        "village_language",
+        currentLanguage
+      );
+
+
+      updateLanguageUI();
+
+    }
+
+
+    function updateLanguageUI() {
+
+      const title =
+        document.getElementById(
+          "welcomeTitle"
+        );
+
+      const text =
+        document.getElementById(
+          "welcomeText"
+        );
+
+      const notice =
+        document.getElementById(
+          "notice"
+        );
+
+
+      if (
+        currentLanguage === "hi"
+      ) {
+
+        title.textContent =
+          "मैं आपकी कैसे मदद कर सकता हूँ?";
+
+
+        text.textContent =
+          "Village AI से कुछ भी पूछें";
+
+
+        userInput.placeholder =
+          "Village AI को संदेश लिखें...";
+
+
+        notice.textContent =
+          "Village AI से गलती हो सकती है। महत्वपूर्ण जानकारी जाँच लें।";
+
+      }
+
+      else {
+
+        title.textContent =
+          "How can I help you?";
+
+
+        text.textContent =
+          "Ask anything to Village AI";
+
+
+        userInput.placeholder =
+          "Message Village AI...";
+
+
+        notice.textContent =
+          "Village AI can make mistakes. Check important information.";
+
+      }
+
+    }
+
+
+    /* =========================
+       SAVE SETTINGS
+    ========================== */
+
+    function saveSettings() {
+
+      localStorage.setItem(
+        "village_voice_response",
+        voiceResponseToggle.checked
+      );
+
+    }
+
+
+    /* =========================
+       LOAD SETTINGS
+    ========================== */
+
+    function loadSettings() {
+
+      const dark =
+        localStorage.getItem(
+          "village_dark_mode"
+        ) === "true";
+
+
+      const voice =
+        localStorage.getItem(
+          "village_voice_response"
+        ) === "true";
+
+
+      darkModeToggle.checked =
+        dark;
+
+
+      voiceResponseToggle.checked =
+        voice;
+
+
+      languageSelect.value =
+        currentLanguage;
+
+
+      document.body.classList.toggle(
+        "dark",
+        dark
+      );
+
+
+      updateLanguageUI();
+
+    }
+
+
+    /* =========================
+       SEND MESSAGE
+    ========================== */
+
+    async function sendMessage() {
+
+      const text =
+        userInput.value.trim();
+
+
+      if (!text) {
+        return;
+      }
+
+
+      removeWelcome();
+
+
+      addMessage(
+        text,
+        "user"
+      );
+
+
+      userInput.value = "";
+
+      userInput.style.height =
+        "auto";
+
+
+      saveChat();
+
+
+      const typingId =
+        addTyping();
+
+
+      try {
+
+        const response =
+          await fetch(
+            "/api/chat",
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json"
+              },
+
+              body: JSON.stringify({
+
+                message: text,
+
+                language:
+                  currentLanguage
+
+              })
+
+            }
+          );
+
+
+        removeTyping(
+          typingId
+        );
+
+
+        if (!response.ok) {
+
+          let errorText =
+            "Server error occurred.";
+
+
+          try {
+
+            const errorData =
+              await response.json();
+
+
+            if (
+              errorData.detail
+            ) {
+
+              errorText =
+                errorData.detail;
+
+            }
+
+          }
+
+          catch (error) {}
+
+
+          addMessage(
+            errorText,
+            "assistant"
+          );
+
+
+          return;
+        }
+
+
+        const data =
+          await response.json();
+
+
+        const aiResponse =
+          data.response ||
+          "No response received.";
+
+
+        addMessage(
+          aiResponse,
+          "assistant"
+        );
+
+
+        saveChat();
+
+
+        if (
+          voiceResponseToggle.checked
+        ) {
+
+          speak(
+            aiResponse
+          );
+
+        }
+
+      }
+
+
+      catch (error) {
+
+        console.error(
+          error
+        );
+
+
+        removeTyping(
+          typingId
+        );
+
+
+        addMessage(
+
+          currentLanguage === "hi"
+
+            ? "⚠️ Python server से connection नहीं हो पाया। कृपया backend चालू करें।"
+
+            : "⚠️ Could not connect to the Python server. Please start the backend.",
+
+          "assistant"
+
+        );
+
+      }
+
+    }
+
+
+    /* =========================
+       ADD MESSAGE
+    ========================== */
+
+    function addMessage(
+      text,
+      sender
+    ) {
+
+      const row =
+        document.createElement(
+          "div"
+        );
+
+
+      row.className =
+        "message-row " +
+        sender;
+
+
+      const message =
+        document.createElement(
+          "div"
+        );
+
+
+      message.className =
+        "message " +
+        sender;
+
+
+      message.textContent =
+        text;
+
+
+      row.appendChild(
+        message
+      );
+
+
+      messages.appendChild(
+        row
+      );
+
+
+      messages.scrollTop =
+        messages.scrollHeight;
+
+    }
+
+
+    /* =========================
+       TYPING
+    ========================== */
+
+    function addTyping() {
+
+      const id =
+        "typing-" +
+        Date.now();
+
+
+      const row =
+        document.createElement(
+          "div"
+        );
+
+
+      row.className =
+        "message-row assistant";
+
+
+      row.id = id;
+
+
+      const message =
+        document.createElement(
+          "div"
+        );
+
+
+      message.className =
+        "message assistant";
+
+
+      message.textContent =
+        currentLanguage === "hi"
+          ? "सोच रहा हूँ..."
+          : "Thinking...";
+
+
+      row.appendChild(
+        message
+      );
+
+
+      messages.appendChild(
+        row
+      );
+
+
+      messages.scrollTop =
+        messages.scrollHeight;
+
+
+      return id;
+
+    }
+
+
+    function removeTyping(id) {
+
+      const element =
+        document.getElementById(
+          id
+        );
+
+
+      if (element) {
+
+        element.remove();
+
+      }
+
+    }
+
+
+    /* =========================
+       WELCOME
+    ========================== */
+
+    function removeWelcome() {
+
+      const welcome =
+        document.getElementById(
+          "welcome"
+        );
+
+
+      if (welcome) {
+
+        welcome.remove();
+
+      }
+
+    }
+
+
+    /* =========================
+       ENTER KEY
+    ========================== */
+
+    function handleKey(
+      event
+    ) {
+
+      if (
+        event.key === "Enter" &&
+        !event.shiftKey
+      ) {
+
+        event.preventDefault();
+
+        sendMessage();
+
+      }
+
+    }
+
+
+    /* =========================
+       TEXTAREA
+    ========================== */
+
+    userInput.addEventListener(
+      "input",
+      function () {
+
+        this.style.height =
+          "auto";
+
+
+        this.style.height =
+          Math.min(
+            this.scrollHeight,
+            150
+          ) + "px";
+
+      }
+    );
+
+
+    /* =========================
+       NEW CHAT
+    ========================== */
+
+    function newChat() {
+
+      messages.innerHTML = `
+
+        <div
+          class="welcome"
+          id="welcome"
+        >
+
+          <div class="welcome-icon">
+            🌾
+          </div>
+
+          <h1 id="welcomeTitle">
+            How can I help you?
+          </h1>
+
+          <p id="welcomeText">
+            Ask anything to Village AI
+          </p>
+
+        </div>
+
+      `;
+
+
+      localStorage.removeItem(
+        "village_chat"
+      );
+
+
+      updateLanguageUI();
+
+
+      userInput.value = "";
+
+      userInput.focus();
+
+    }
+
+
+    /* =========================
+       CLEAR CHAT
+    ========================== */
+
+    function clearChat() {
+
+      const confirmed =
+        confirm(
+
+          currentLanguage === "hi"
+
+            ? "क्या आप पूरी chat हटाना चाहते हैं?"
+
+            : "Do you want to clear the entire chat?"
+
+        );
+
+
+      if (!confirmed) {
+        return;
+      }
+
+
+      newChat();
+
+    }
+
+
+    /* =========================
+       SAVE CHAT
+    ========================== */
+
+    function saveChat() {
+
+      const chat = [];
+
+
+      document
+        .querySelectorAll(
+          ".message-row"
+        )
+        .forEach(
+          function (row) {
+
+            const message =
+              row.querySelector(
+                ".message"
+              );
+
+
+            if (!message) {
+              return;
+            }
+
+
+            const sender =
+              row.classList.contains(
+                "user"
+              )
+                ? "user"
+                : "assistant";
+
+
+            chat.push({
+
+              sender:
+                sender,
+
+              text:
+                message.textContent
+
+            });
+
+          }
+        );
+
+
+      localStorage.setItem(
+        "village_chat",
+        JSON.stringify(chat)
+      );
+
+    }
+
+
+    /* =========================
+       LOAD CHAT
+    ========================== */
+
+    function loadChat() {
+
+      const saved =
+        localStorage.getItem(
+          "village_chat"
+        );
+
+
+      if (!saved) {
+        return;
+      }
+
+
+      try {
+
+        const chat =
+          JSON.parse(saved);
+
+
+        if (!chat.length) {
+          return;
+        }
+
+
+        removeWelcome();
+
+
+        chat.forEach(
+          function (item) {
+
+            addMessage(
+              item.text,
+              item.sender
+            );
+
+          }
+        );
+
+      }
+
+      catch (error) {
+
+        console.error(
+          "Chat history error:",
+          error
+        );
+
+      }
+
+    }
+
+
+    /* =========================
+       CHAT HISTORY
+    ========================== */
+
+    function showHistory() {
+
+      const saved =
+        localStorage.getItem(
+          "village_chat"
+        );
+
+
+      if (!saved) {
+
+        alert(
+
+          currentLanguage === "hi"
+
+            ? "अभी कोई chat history नहीं है।"
+
+            : "There is no chat history yet."
+
+        );
+
+        return;
+
+      }
+
+
+      try {
+
+        const chat =
+          JSON.parse(saved);
+
+
+        alert(
+
+          currentLanguage === "hi"
+
+            ? "इस browser में " +
+              chat.length +
+              " messages saved हैं।"
+
+            : chat.length +
+              " messages are saved in this browser."
+
+        );
+
+      }
+
+      catch (error) {
+
+        alert(
+          "Chat history could not be read."
+        );
+
+      }
+
+    }
+
+
+    /* =========================
+       VOICE INPUT
+    ========================== */
+
+    function startVoiceInput() {
+
+      const SpeechRecognition =
+        window.SpeechRecognition ||
+        window.webkitSpeechRecognition;
+
+
+      if (!SpeechRecognition) {
+
+        alert(
+
+          currentLanguage === "hi"
+
+            ? "आपका browser voice input support नहीं करता। Chrome इस्तेमाल करें।"
+
+            : "Your browser does not support voice input. Try Chrome."
+
+        );
+
+        return;
+
+      }
+
+
+      if (isListening) {
+
+        if (recognition) {
+
+          recognition.stop();
+
+        }
+
+        return;
+
+      }
+
+
+      recognition =
+        new SpeechRecognition();
+
+
+      recognition.continuous =
+        false;
+
+
+      recognition.interimResults =
+        true;
+
+
+      recognition.lang =
+        currentLanguage === "hi"
+          ? "hi-IN"
+          : "en-IN";
+
+
+      recognition.onstart =
+        function () {
+
+          isListening =
+            true;
+
+
+          document
+            .getElementById(
+              "micBtn"
+            )
+            .classList.add(
+              "listening"
+            );
+
+        };
+
+
+      recognition.onresult =
+        function (event) {
+
+          let transcript =
+            "";
+
+
+          for (
+            let i =
+              event.resultIndex;
+
+            i <
+              event.results.length;
+
+            i++
+          ) {
+
+            transcript +=
+              event.results[i][0]
+                .transcript;
+
+          }
+
+
+          userInput.value =
+            transcript;
+
+
+          userInput.style.height =
+            "auto";
+
+
+          userInput.style.height =
+            Math.min(
+              userInput.scrollHeight,
+              150
+            ) + "px";
+
+        };
+
+
+      recognition.onerror =
+        function (event) {
+
+          console.error(
+            "Voice input error:",
+            event.error
+          );
+
+        };
+
+
+      recognition.onend =
+        function () {
+
+          isListening =
+            false;
+
+
+          document
+            .getElementById(
+              "micBtn"
+            )
+            .classList.remove(
+              "listening"
+            );
+
+        };
+
+
+      recognition.start();
+
+    }
+
+
+    /* =========================
+       VOICE RESPONSE
+    ========================== */
+
+    function speak(text) {
+
+      if (
+        !("speechSynthesis" in window)
+      ) {
+
+        return;
+
+      }
+
+
+      window.speechSynthesis.cancel();
+
+
+      const speech =
+        new SpeechSynthesisUtterance(
+          text
+        );
+
+
+      speech.lang =
+        currentLanguage === "hi"
+          ? "hi-IN"
+          : "en-IN";
+
+
+      speech.rate =
+        1;
+
+
+      speech.pitch =
+        1;
+
+
+      window.speechSynthesis.speak(
+        speech
+      );
+
+    }
+
+
+    /* =========================
+       THEME
+    ========================== */
+
+    function setTheme(
+      color
+    ) {
+
+      document.documentElement
+        .style
+        .setProperty(
+          "--theme-color",
+          color
+        );
+
+
+      localStorage.setItem(
+        "village_theme",
+        color
+      );
+
+    }
+
+
+    function loadTheme() {
+
+      const theme =
+        localStorage.getItem(
+          "village_theme"
+        );
+
+
+      if (theme) {
+
+        setTheme(
+          theme
+        );
+
+      }
+
+    }
+
+
+    /* =========================
+       ABOUT
+    ========================== */
+
+    function showAbout() {
+
+      const modal =
+        document.getElementById(
+          "aboutModal"
+        );
+
+
+      modal.classList.add(
+        "active"
+      );
+
+    }
+
+
+    function closeAbout() {
+
+      const modal =
+        document.getElementById(
+          "aboutModal"
+        );
+
+
+      modal.classList.remove(
+        "active"
+      );
+
+    }
+
+
+    function closeModal(
+      event
+    ) {
+
+      if (
+        event.target.id ===
+        "aboutModal"
+      ) {
+
+        closeAbout();
+
+      }
+
+    }
+
+
+  </script>
+
+
+</body>
+
+</html>
