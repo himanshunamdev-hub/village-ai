@@ -1,2570 +1,635 @@
-
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
-  <meta charset="UTF-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
-  >
-
-  <title>Village AI</title>
-
-
-  <style>
-
-    /* =====================================================
-       ROOT / THEME
-    ===================================================== */
-
-    :root {
-      --primary: #267a35;
-
-      --bg: #ffffff;
-      --sidebar-bg: #f7f7f7;
-      --card-bg: #ffffff;
-
-      --text: #1f2937;
-      --muted: #6b7280;
-
-      --border: #e5e7eb;
-
-      --input-bg: #ffffff;
-
-      --hover: #eeeeee;
-
-      --overlay: rgba(0, 0, 0, 0.45);
-    }
-
-
-    /* =====================================================
-       DARK MODE
-    ===================================================== */
-
-    body.dark {
-      --bg: #212121;
-      --sidebar-bg: #171717;
-      --card-bg: #2b2b2b;
-
-      --text: #f5f5f5;
-      --muted: #a3a3a3;
-
-      --border: #3f3f3f;
-
-      --input-bg: #2b2b2b;
-
-      --hover: #333333;
-    }
-
-
-    /* =====================================================
-       RESET
-    ===================================================== */
-
-    * {
-      box-sizing: border-box;
-    }
-
-
-    html,
-    body {
-      width: 100%;
-      height: 100%;
-
-      margin: 0;
-      padding: 0;
-    }
-
-
-    body {
-      font-family:
-        -apple-system,
-        BlinkMacSystemFont,
-        "Segoe UI",
-        Roboto,
-        Arial,
-        sans-serif;
-
-      background: var(--bg);
-      color: var(--text);
-
-      overflow: hidden;
-
-      transition:
-        background 0.2s ease,
-        color 0.2s ease;
-    }
-
-
-    button,
-    select,
-    textarea {
-      font-family: inherit;
-    }
-
-
-    button {
-      -webkit-tap-highlight-color: transparent;
-    }
-
-
-    /* =====================================================
-       SIDEBAR
-    ===================================================== */
-
-    .sidebar {
-      position: fixed;
-
-      top: 0;
-      left: 0;
-      bottom: 0;
-
-      width: 260px;
-
-      display: flex;
-      flex-direction: column;
-
-      padding: 18px 14px;
-
-      background: var(--sidebar-bg);
-
-      border-right: 1px solid var(--border);
-
-      z-index: 1500;
-
-      overflow-y: auto;
-
-      transition:
-        transform 0.25s ease,
-        background 0.2s ease;
-    }
-
-
-    /* SIDEBAR HEADER */
-
-    .sidebar-header {
-      min-height: 45px;
-
-      display: flex;
-
-      align-items: center;
-
-      justify-content: space-between;
-
-      margin-bottom: 15px;
-    }
-
-
-    /* LOGO */
-
-    .logo {
-      font-size: 19px;
-
-      font-weight: 700;
-
-      white-space: nowrap;
-    }
-
-
-    /* SIDEBAR CLOSE */
-
-    .sidebar-close {
-      display: none;
-
-      width: 38px;
-      height: 38px;
-
-      border: none;
-
-      border-radius: 10px;
-
-      background: transparent;
-
-      color: var(--text);
-
-      font-size: 20px;
-
-      cursor: pointer;
-
-      align-items: center;
-
-      justify-content: center;
-    }
-
-
-    .sidebar-close:hover {
-      background: var(--hover);
-    }
-
-
-    /* NEW CHAT */
-
-    .new-chat {
-      width: 100%;
-
-      min-height: 46px;
-
-      padding: 10px 14px;
-
-      border: 1px solid var(--border);
-
-      border-radius: 12px;
-
-      background: var(--card-bg);
-
-      color: var(--text);
-
-      font-size: 15px;
-
-      font-weight: 600;
-
-      text-align: left;
-
-      cursor: pointer;
-
-      transition:
-        background 0.2s ease,
-        transform 0.15s ease;
-    }
-
-
-    .new-chat:hover {
-      background: var(--hover);
-
-      transform: translateY(-1px);
-    }
-
-
-    .new-chat:active {
-      transform: scale(0.98);
-    }
-
-
-    /* SIDEBAR BOTTOM */
-
-    .sidebar-bottom {
-      margin-top: auto;
-
-      padding: 14px 8px;
-
-      color: var(--muted);
-
-      font-size: 13px;
-
-      line-height: 1.6;
-    }
-
-
-    .sidebar-bottom strong {
-      color: var(--text);
-    }
-
-
-    /* =====================================================
-       MOBILE MENU BUTTON
-    ===================================================== */
-
-    .mobile-menu-btn {
-      display: none;
-
-      position: fixed;
-
-      top: 9px;
-      left: 9px;
-
-      width: 42px;
-      height: 42px;
-
-      border: none;
-
-      border-radius: 10px;
-
-      background: transparent;
-
-      color: var(--text);
-
-      font-size: 23px;
-
-      cursor: pointer;
-
-      align-items: center;
-
-      justify-content: center;
-
-      z-index: 2000;
-    }
-
-
-    .mobile-menu-btn:hover {
-      background: var(--hover);
-    }
-
-
-    /* =====================================================
-       SIDEBAR OVERLAY
-    ===================================================== */
-
-    .sidebar-overlay {
-      display: none;
-
-      position: fixed;
-
-      inset: 0;
-
-      background: var(--overlay);
-
-      z-index: 1400;
-    }
-
-
-    /* =====================================================
-       TOPBAR
-    ===================================================== */
-
-    .topbar {
-      position: relative;
-
-      margin-left: 260px;
-
-      min-height: 60px;
-
-      display: flex;
-
-      align-items: center;
-
-      justify-content: space-between;
-
-      padding: 8px 20px;
-
-      border-bottom: 1px solid var(--border);
-
-      background: var(--bg);
-
-      z-index: 500;
-    }
-
-
-    .topbar-title {
-      font-size: 16px;
-
-      font-weight: 600;
-
-      white-space: nowrap;
-    }
-
-
-    .topbar-actions {
-      display: flex;
-
-      align-items: center;
-
-      gap: 8px;
-    }
-
-
-    /* SETTINGS BUTTON */
-
-    .icon-btn {
-      width: 40px;
-      height: 40px;
-
-      border: none;
-
-      border-radius: 10px;
-
-      background: transparent;
-
-      color: var(--text);
-
-      font-size: 19px;
-
-      cursor: pointer;
-    }
-
-
-    .icon-btn:hover {
-      background: var(--hover);
-    }
-
-
-    /* =====================================================
-       SETTINGS PANEL
-    ===================================================== */
-
-    .settings-panel {
-      position: absolute;
-
-      top: 55px;
-
-      right: 15px;
-
-      width: 350px;
-
-      max-height: calc(100vh - 70px);
-
-      overflow-y: auto;
-
-      padding: 10px;
-
-      background: var(--card-bg);
-
-      border: 1px solid var(--border);
-
-      border-radius: 16px;
-
-      box-shadow:
-        0 12px 35px rgba(0, 0, 0, 0.15);
-
-      display: none;
-
-      z-index: 2500;
-    }
-
-
-    .settings-panel.show {
-      display: block;
-    }
-
-
-    .settings-title {
-      padding: 12px 10px;
-
-      font-size: 18px;
-
-      font-weight: 700;
-
-      border-bottom: 1px solid var(--border);
-
-      margin-bottom: 5px;
-    }
-
-
-    /* SETTING ITEM */
-
-    .setting-item {
-      min-height: 68px;
-
-      display: flex;
-
-      align-items: center;
-
-      justify-content: space-between;
-
-      gap: 12px;
-
-      padding: 10px;
-
-      border-radius: 12px;
-
-      cursor: pointer;
-    }
-
-
-    .setting-item:hover {
-      background: var(--hover);
-    }
-
-
-    .setting-left {
-      min-width: 0;
-
-      display: flex;
-
-      align-items: center;
-
-      gap: 12px;
-    }
-
-
-    .setting-icon {
-      width: 35px;
-      height: 35px;
-
-      flex-shrink: 0;
-
-      display: flex;
-
-      align-items: center;
-
-      justify-content: center;
-
-      border-radius: 9px;
-
-      background: var(--hover);
-
-      font-size: 17px;
-    }
-
-
-    .setting-label {
-      font-size: 14px;
-
-      font-weight: 600;
-
-      color: var(--text);
-    }
-
-
-    .setting-description {
-      margin-top: 2px;
-
-      font-size: 11px;
-
-      color: var(--muted);
-    }
-
-
-    /* =====================================================
-       SWITCH
-    ===================================================== */
-
-    .switch {
-      position: relative;
-
-      width: 44px;
-      height: 24px;
-
-      flex-shrink: 0;
-    }
-
-
-    .switch input {
-      opacity: 0;
-
-      width: 0;
-      height: 0;
-    }
-
-
-    .slider {
-      position: absolute;
-
-      inset: 0;
-
-      background: #aaa;
-
-      border-radius: 20px;
-
-      cursor: pointer;
-
-      transition: 0.2s;
-    }
-
-
-    .slider::before {
-      content: "";
-
-      position: absolute;
-
-      width: 18px;
-      height: 18px;
-
-      left: 3px;
-      top: 3px;
-
-      background: white;
-
-      border-radius: 50%;
-
-      transition: 0.2s;
-    }
-
-
-    .switch input:checked + .slider {
-      background: var(--primary);
-    }
-
-
-    .switch input:checked + .slider::before {
-      transform: translateX(20px);
-    }
-
-
-    /* =====================================================
-       LANGUAGE SELECT
-    ===================================================== */
-
-    .setting-select {
-      min-width: 100px;
-
-      padding: 7px 9px;
-
-      border: 1px solid var(--border);
-
-      border-radius: 8px;
-
-      background: var(--card-bg);
-
-      color: var(--text);
-
-      outline: none;
-
-      cursor: pointer;
-    }
-
-
-    /* =====================================================
-       THEME COLORS
-    ===================================================== */
-
-    .theme-colors {
-      display: flex;
-
-      align-items: center;
-
-      gap: 7px;
-    }
-
-
-    .theme-color {
-      width: 25px;
-      height: 25px;
-
-      border-radius: 50%;
-
-      border: 2px solid var(--card-bg);
-
-      outline: 1px solid var(--border);
-
-      cursor: pointer;
-    }
-
-
-    .theme-green {
-      background: #267a35;
-    }
-
-
-    .theme-blue {
-      background: #2563eb;
-    }
-
-
-    .theme-purple {
-      background: #7c3aed;
-    }
-
-
-    .theme-orange {
-      background: #ea580c;
-    }
-
-
-    /* =====================================================
-       MESSAGES
-    ===================================================== */
-
-    .messages {
-      position: fixed;
-
-      top: 60px;
-      right: 0;
-      bottom: 105px;
-
-      width: calc(100% - 260px);
-
-      padding: 30px 20px 40px;
-
-      overflow-y: auto;
-
-      scroll-behavior: smooth;
-    }
-
-
-    /* WELCOME */
-
-    .welcome {
-      width: 100%;
-
-      max-width: 760px;
-
-      margin: 12vh auto 0;
-
-      text-align: center;
-    }
-
-
-    .welcome-icon {
-      font-size: 45px;
-    }
-
-
-    .welcome h1 {
-      margin: 15px 0 8px;
-
-      color: var(--text);
-
-      font-size: clamp(25px, 4vw, 36px);
-
-      line-height: 1.25;
-    }
-
-
-    .welcome p {
-      margin: 0;
-
-      color: var(--muted);
-
-      font-size: 15px;
-    }
-
-
-    /* =====================================================
-       CHAT MESSAGES
-    ===================================================== */
-
-    .message {
-      width: 100%;
-
-      max-width: 800px;
-
-      margin: 0 auto 18px;
-
-      display: flex;
-    }
-
-
-    .message.user {
-      justify-content: flex-end;
-    }
-
-
-    .message.ai {
-      justify-content: flex-start;
-    }
-
-
-    .message-bubble {
-      max-width: 85%;
-
-      padding: 11px 14px;
-
-      border-radius: 14px;
-
-      font-size: 15px;
-
-      line-height: 1.55;
-
-      white-space: pre-wrap;
-
-      word-break: break-word;
-    }
-
-
-    .message.user .message-bubble {
-      background: var(--primary);
-
-      color: white;
-
-      border-bottom-right-radius: 5px;
-    }
-
-
-    .message.ai .message-bubble {
-      background: var(--hover);
-
-      color: var(--text);
-
-      border-bottom-left-radius: 5px;
-    }
-
-
-    /* =====================================================
-       INPUT AREA
-    ===================================================== */
-
-    .input-area {
-      position: fixed;
-
-      left: 260px;
-      right: 0;
-      bottom: 0;
-
-      padding: 12px 20px 15px;
-
-      background: var(--bg);
-
-      z-index: 600;
-    }
-
-
-    .input-box {
-      width: 100%;
-
-      max-width: 850px;
-
-      margin: 0 auto;
-
-      display: flex;
-
-      align-items: flex-end;
-
-      gap: 8px;
-
-      padding: 8px 10px;
-
-      background: var(--input-bg);
-
-      border: 1px solid var(--border);
-
-      border-radius: 18px;
-
-      box-shadow:
-        0 2px 10px rgba(0, 0, 0, 0.04);
-    }
-
-
-    .input-box textarea {
-      flex: 1;
-
-      width: 100%;
-
-      min-width: 0;
-
-      min-height: 38px;
-
-      max-height: 150px;
-
-      resize: none;
-
-      border: none;
-
-      outline: none;
-
-      background: transparent;
-
-      color: var(--text);
-
-      padding: 9px 8px;
-
-      font-size: 15px;
-
-      line-height: 1.45;
-    }
-
-
-    .input-box textarea::placeholder {
-      color: var(--muted);
-    }
-
-
-    .input-buttons {
-      display: flex;
-
-      align-items: center;
-
-      gap: 5px;
-
-      flex-shrink: 0;
-    }
-
-
-    .mic-btn,
-    .send-btn {
-      width: 38px;
-      height: 38px;
-
-      flex-shrink: 0;
-
-      display: flex;
-
-      align-items: center;
-
-      justify-content: center;
-
-      border: none;
-
-      border-radius: 50%;
-
-      cursor: pointer;
-
-      font-size: 17px;
-
-      transition:
-        transform 0.15s ease,
-        opacity 0.2s ease;
-    }
-
-
-    .mic-btn {
-      background: var(--hover);
-
-      color: var(--text);
-    }
-
-
-    .send-btn {
-      background: var(--primary);
-
-      color: white;
-
-      font-weight: 700;
-    }
-
-
-    .mic-btn:hover,
-    .send-btn:hover {
-      transform: scale(1.05);
-    }
-
-
-    .mic-btn:active,
-    .send-btn:active {
-      transform: scale(0.95);
-    }
-
-
-    /* =====================================================
-       NOTICE
-    ===================================================== */
-
-    .notice {
-      max-width: 850px;
-
-      margin: 7px auto 0;
-
-      padding: 0 5px;
-
-      color: var(--muted);
-
-      text-align: center;
-
-      font-size: 11px;
-
-      line-height: 1.4;
-    }
-
-
-    /* =====================================================
-       MODAL
-    ===================================================== */
-
-    .modal-overlay {
-      position: fixed;
-
-      inset: 0;
-
-      display: none;
-
-      align-items: center;
-
-      justify-content: center;
-
-      padding: 15px;
-
-      background: rgba(0, 0, 0, 0.5);
-
-      z-index: 5000;
-    }
-
-
-    .modal-overlay.show {
-      display: flex;
-    }
-
-
-    .modal {
-      width: 100%;
-
-      max-width: 500px;
-
-      max-height: calc(100vh - 30px);
-
-      overflow-y: auto;
-
-      padding: 24px;
-
-      background: var(--card-bg);
-
-      color: var(--text);
-
-      border: 1px solid var(--border);
-
-      border-radius: 18px;
-
-      box-shadow:
-        0 20px 50px rgba(0, 0, 0, 0.25);
-    }
-
-
-    .modal h2 {
-      margin-top: 0;
-
-      font-size: 21px;
-    }
-
-
-    .modal p {
-      color: var(--muted);
-
-      font-size: 14px;
-
-      line-height: 1.7;
-    }
-
-
-    .modal-close {
-      width: 100%;
-
-      margin-top: 10px;
-
-      padding: 11px 15px;
-
-      border: none;
-
-      border-radius: 10px;
-
-      background: var(--primary);
-
-      color: white;
-
-      font-size: 14px;
-
-      font-weight: 600;
-
-      cursor: pointer;
-    }
-
-
-    /* =====================================================
-       MOBILE
-    ===================================================== */
-
-    @media (max-width: 768px) {
-
-      /* MOBILE MENU */
-
-      .mobile-menu-btn {
-        display: flex;
-      }
-
-
-      /* SIDEBAR */
-
-      .sidebar {
-        width: min(82vw, 300px);
-
-        transform: translateX(-105%);
-
-        box-shadow:
-          8px 0 30px rgba(0, 0, 0, 0.2);
-      }
-
-
-      .sidebar.mobile-open {
-        transform: translateX(0);
-      }
-
-
-      .sidebar-close {
-        display: flex;
-      }
-
-
-      /* OVERLAY */
-
-      .sidebar-overlay.mobile-open {
-        display: block;
-      }
-
-
-      /* MAIN */
-
-      .topbar {
-        margin-left: 0;
-
-        min-height: 58px;
-
-        height: 58px;
-
-        padding: 8px 12px 8px 62px;
-      }
-
-
-      .messages {
-        top: 58px;
-
-        bottom: 108px;
-
-        width: 100%;
-
-        padding: 20px 13px 30px;
-      }
-
-
-      .input-area {
-        left: 0;
-
-        right: 0;
-
-        padding:
-          8px
-          max(8px, env(safe-area-inset-right))
-          max(10px, env(safe-area-inset-bottom))
-          max(8px, env(safe-area-inset-left));
-      }
-
-
-      /* WELCOME */
-
-      .welcome {
-        margin-top: 15vh;
-
-        padding: 0 10px;
-      }
-
-
-      .welcome-icon {
-        font-size: 38px;
-      }
-
-
-      .welcome h1 {
-        font-size: 26px;
-      }
-
-
-      .welcome p {
-        font-size: 14px;
-      }
-
-
-      /* INPUT */
-
-      .input-box {
-        border-radius: 18px;
-
-        padding: 7px 8px;
-      }
-
-
-      .input-box textarea {
-        font-size: 16px;
-
-        min-height: 38px;
-
-        padding: 8px 6px;
-      }
-
-
-      .mic-btn,
-      .send-btn {
-        width: 36px;
-        height: 36px;
-
-        font-size: 16px;
-      }
-
-
-      .notice {
-        font-size: 10px;
-
-        margin-top: 5px;
-
-        padding: 0 8px;
-      }
-
-
-      /* SETTINGS */
-
-      .settings-panel {
-        position: fixed !important;
-
-        top: 58px !important;
-
-        left: 8px !important;
-        right: 8px !important;
-
-        width: auto !important;
-
-        max-width: none !important;
-
-        max-height: calc(100vh - 75px);
-
-        overflow-y: auto;
-
-        border-radius: 16px;
-      }
-
-
-      .setting-item {
-        min-height: 62px;
-
-        padding: 10px 12px;
-      }
-
-
-      .setting-label {
-        font-size: 14px;
-      }
-
-
-      .setting-description {
-        font-size: 11px;
-      }
-
-
-      /* MODAL */
-
-      .modal {
-        width: calc(100% - 24px);
-
-        padding: 20px;
-
-        border-radius: 16px;
-      }
-
-    }
-
-
-    /* =====================================================
-       SMALL MOBILE
-    ===================================================== */
-
-    @media (max-width: 380px) {
-
-      .topbar-title {
-        font-size: 14px;
-      }
-
-
-      .welcome h1 {
-        font-size: 23px;
-      }
-
-
-      .input-box {
-        padding: 5px 6px;
-      }
-
-
-      .mic-btn,
-      .send-btn {
-        width: 34px;
-        height: 34px;
-      }
-
-
-      .sidebar {
-        width: 88vw;
-      }
-
-    }
-
-
-  </style>
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<title>Village AI</title>
+<style>
+:root{
+  --bg:#fff;--panel:#f7f7f8;--text:#171717;--muted:#6b7280;
+  --border:#e5e7eb;--accent:#267a35;--user:#eaf4ff;--shadow:0 10px 35px #00000014
+}
+*{box-sizing:border-box}html,body{height:100%;margin:0}html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);overflow:hidden;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+button,input,textarea{font:inherit}button{cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.app{height:100dvh;min-height:100%;display:flex;overflow:hidden}
+.sidebar{width:252px;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:12px;flex-shrink:0}
+.logo{font-size:20px;font-weight:750;padding:10px 10px 18px;letter-spacing:-.3px}.new-chat{width:100%;border:1px solid var(--border);background:#fff;border-radius:11px;padding:11px 13px;text-align:left;transition:.15s}.new-chat:hover{transform:translateY(-1px);box-shadow:0 5px 14px #0000000b}
+.side-bottom{margin-top:auto}.side-link{width:100%;border:0;background:transparent;text-align:left;padding:11px 10px;border-radius:9px}.side-link:hover{background:#ececef}
+.main{flex:1 1 auto;min-width:0;min-height:0;display:flex;flex-direction:column;position:relative}
+.topbar{height:62px;min-height:62px;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 18px;gap:12px;position:relative;z-index:25}
+.top-title{font-weight:700;display:none}.search-wrap{flex:1;max-width:620px;margin:auto;position:relative}
+.search{width:100%;padding:10px 14px 10px 39px;border:1px solid var(--border);border-radius:12px;background:#f7f7f8;outline:none}
+.search:focus{background:#fff;border-color:#c8cdd5}.search-icon{position:absolute;left:13px;top:10px;color:var(--muted)}
+.search-results{position:absolute;left:0;right:0;top:47px;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);z-index:20;overflow:hidden}
+.result{display:flex;gap:10px;align-items:center;padding:11px 13px}.result:hover{background:#f5f5f5}
+.avatar{width:34px;height:34px;border-radius:50%;background:#ddd;display:grid;place-items:center;font-weight:700;overflow:hidden;flex:none}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.messages{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:25px 18px 150px}
+.messages-inner{max-width:820px;margin:auto}.welcome{text-align:center;margin:14vh auto 0;max-width:650px}.welcome-icon{font-size:38px;filter:saturate(.9)}.welcome h1{font-size:34px;letter-spacing:-1px;margin:10px 0 8px}.welcome p{color:var(--muted);font-size:15px}
+.message{display:flex;gap:10px;margin:18px 0}.message.user{justify-content:flex-end}.bubble{max-width:min(78%,720px);padding:12px 15px;border-radius:18px;background:#f2f2f2;line-height:1.58;white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px}
+.message.user .bubble{background:var(--user)}.message.user .avatar{display:none}
+.composer-area{position:fixed;left:252px;right:0;bottom:0;z-index:15;padding:18px;background:linear-gradient(transparent,var(--bg) 28%)}
+.composer{max-width:820px;margin:auto;border:1px solid #d8d8d8;border-radius:19px;background:#fff;padding:7px 7px 7px 10px;display:flex;align-items:flex-end;box-shadow:0 4px 24px #0000000b}
+textarea{flex:1;border:0;outline:0;resize:none;padding:9px;max-height:150px;line-height:1.45;background:transparent}
+.icon-send{width:40px;height:40px;border:0;border-radius:12px;background:var(--accent);color:#fff;font-size:20px}
+.notice{text-align:center;font-size:11px;color:var(--muted);margin-top:7px}
+.settings-panel{position:absolute;right:18px;top:54px;width:350px;max-width:calc(100vw - 30px);background:#fff;border:1px solid var(--border);border-radius:15px;box-shadow:var(--shadow);padding:16px;display:none;z-index:30}
+.settings-panel.open{display:block;animation:panelIn .14s ease-out}.settings-title{font-weight:700;font-size:17px;margin-bottom:12px}
+.setting{padding:12px 0;border-bottom:1px solid var(--border)}.setting:last-child{border-bottom:0}
+.setting-row{display:flex;align-items:center;justify-content:space-between;gap:10px}.setting-label{font-weight:600}.setting-desc{font-size:12px;color:var(--muted);margin-top:3px}
+select,.profile-input{padding:8px 10px;border:1px solid var(--border);border-radius:9px;background:#fff}
+.theme-row{display:flex;gap:8px;margin-top:10px}.theme{width:25px;height:25px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #ccc}
+.verified-tick{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;background:#1d78ff;color:#fff;font-size:11px;font-weight:800;margin-left:4px;vertical-align:middle}.profile{display:flex;align-items:center;gap:10px}.profile-text{min-width:0}.profile-text b,.profile-text span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.profile-text span{font-size:12px;color:var(--muted)}
+.primary{border:0;border-radius:9px;padding:9px 12px;background:var(--accent);color:#fff}.secondary{border:1px solid var(--border);border-radius:9px;padding:8px 11px;background:#fff}
+.login-btn{border:1px solid var(--border);background:#fff;border-radius:9px;padding:9px 12px}
+.user-head{max-width:820px;margin:0 auto 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);padding-bottom:12px}
+.back{border:0;background:transparent;font-size:22px}.close{float:right;border:0;background:transparent;font-size:20px}
+.modal-overlay{position:fixed;inset:0;background:#0005;display:none;place-items:center;z-index:60}.modal-overlay.open{display:grid}
+.modal{width:min(500px,92vw);background:#fff;border-radius:18px;padding:24px;box-shadow:var(--shadow)}
+.modal h2{margin-top:0}.modal p{line-height:1.6;color:#4b5563}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#111;color:#fff;padding:10px 14px;border-radius:10px;display:none;z-index:100}
+.mobile-menu{display:none;border:0;background:transparent;font-size:22px}
+.login-overlay{position:fixed;inset:0;background:#fff;z-index:80;display:none;place-items:center}
+.login-card{width:min(410px,92vw);border:1px solid var(--border);border-radius:20px;padding:28px;text-align:center;box-shadow:var(--shadow)}
+.login-card h1{margin:0 0 8px}.login-card p{color:var(--muted);line-height:1.5}
+
+.google-login{width:100%;border:1px solid var(--border);background:#fff;color:#222;border-radius:10px;padding:11px 12px;font-weight:600}
+.login-divider{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px;margin:18px 0}
+.login-divider:before,.login-divider:after{content:"";height:1px;background:var(--border);flex:1}
+.login-input{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:10px;outline:none;margin-bottom:9px;background:#fff}
+.login-input:focus{border-color:#9ca3af}
+.email-actions{display:flex;gap:8px;margin-top:2px}.email-actions button{flex:1}
+
+.mobile-drawer-btn{display:none;position:fixed;left:10px;top:72px;z-index:45;width:42px;height:42px;border:1px solid var(--border);border-radius:12px;background:#fff;color:#222;box-shadow:0 5px 18px #00000018;font-size:20px}
+.drawer-backdrop{display:none;position:fixed;inset:0;background:#0006;z-index:48}
+.media-btn{width:40px;height:40px;flex:none;border:0;background:transparent;border-radius:12px;font-size:24px;color:var(--muted)}
+.media-btn:hover{background:#f1f1f1}.media-preview{max-width:820px;margin:0 auto 7px;padding:8px 10px;border:1px solid var(--border);border-radius:12px;background:var(--panel);font-size:13px;color:var(--muted)}
+.media-preview .file-chip{display:inline-flex;align-items:center;gap:7px;margin-right:7px;padding:7px 9px;border:1px solid var(--border);border-radius:9px;background:var(--bg)}
+.media-preview button{border:0;background:transparent;color:var(--muted);font-size:16px}
+body.dark .media-btn:hover{background:#252525}
+.voice-btn{width:40px;height:40px;flex:none;border:0;background:transparent;border-radius:12px;font-size:20px}.voice-btn:hover{background:#f1f1f1}
+.voice-btn.listening{background:#fee2e2;animation:pulseVoice 1.2s infinite}
+@keyframes pulseVoice{50%{transform:scale(1.06);opacity:.65}}\n@keyframes panelIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+body.dark .mobile-drawer-btn,body.dark .voice-btn{background:#181818;color:var(--text)}
+body.dark .voice-btn:hover{background:#252525}
+
+.profile-top{display:flex;align-items:center;gap:8px;border:0;background:transparent;padding:4px 7px;border-radius:12px;color:var(--text);font-weight:600;max-width:180px}
+.profile-top:hover{background:var(--panel)}
+.top-avatar{width:34px;height:34px;border-radius:50%;background:#267a35;color:#fff;display:grid;place-items:center;font-size:14px;font-weight:750;overflow:hidden;flex:none}
+.top-avatar img{width:100%;height:100%;object-fit:cover}
+.top-user-name{max-width:105px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.voice-overlay{position:fixed;inset:0;background:rgba(0,0,0,.76);z-index:90;display:none;place-items:center;color:#fff}
+.voice-overlay.open{display:grid}
+.voice-card{width:min(520px,94vw);min-height:min(680px,92vh);border-radius:28px;background:radial-gradient(circle at 50% 42%,#27324a 0,#141821 36%,#090b10 75%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;position:relative;overflow:hidden;box-shadow:0 30px 80px #0008}
+.voice-close{position:absolute;right:18px;top:15px;width:38px;height:38px;border:0;border-radius:50%;background:#ffffff14;color:#fff;font-size:25px}
+.voice-brand{font-size:30px}.voice-title{font-size:24px;font-weight:750;margin-top:8px}.voice-status{color:#cbd5e1;margin-top:7px;font-size:14px;text-align:center}
+.voice-orb{width:210px;height:210px;border-radius:50%;margin:48px 0 28px;display:grid;place-items:center;background:radial-gradient(circle,#5e86ff 0,#3659bb 35%,#192342 67%,transparent 68%);box-shadow:0 0 65px #5277ff88;transition:.25s}
+.voice-orb span{font-size:48px}.voice-overlay.listening .voice-orb{animation:voicePulse 1.5s ease-in-out infinite}
+@keyframes voicePulse{0%,100%{transform:scale(.94);box-shadow:0 0 55px #5277ff66}50%{transform:scale(1.06);box-shadow:0 0 100px #5277ffaa}}
+.voice-transcript{width:min(430px,90%);min-height:38px;text-align:center;color:#e5e7eb;line-height:1.5;font-size:15px}
+.voice-controls{display:flex;align-items:center;gap:18px;margin-top:28px}
+.voice-control,.voice-main{border:0;color:#fff;display:grid;place-items:center;border-radius:50%}
+.voice-control{width:48px;height:48px;background:#ffffff16;font-size:19px}.voice-main{width:64px;height:64px;background:#fff;color:#111;font-size:24px}
+.voice-hint{margin-top:20px;color:#94a3b8;font-size:12px;text-align:center}
+body.dark .profile-top{color:var(--text)}
+@media(max-width:700px){
+  .mobile-drawer-btn{display:grid;place-items:center}
+  .drawer-backdrop.open{display:block}
+
+  .sidebar{
+    display:flex;
+    position:fixed;
+    left:-282px;
+    top:0;
+    bottom:0;
+    z-index:50;
+    width:278px;
+    max-width:86vw;
+    transition:left .22s cubic-bezier(.2,.8,.2,1);
+    box-shadow:8px 0 30px #00000022;
+    padding-bottom:max(12px,env(safe-area-inset-bottom));
+  }
+  .sidebar.open{left:0}
+
+  .main{width:100%;min-width:0}
+  .topbar{height:58px;min-height:58px;padding:0 10px 0 58px;gap:8px}
+  .top-title{display:block;font-size:15px;white-space:nowrap}
+  .search-wrap{margin:0;max-width:none;min-width:0}
+  .search{padding-left:36px;padding-right:9px;font-size:14px}
+  .login-btn{padding:8px 9px;white-space:nowrap}
+  #loginTop{padding:3px}
+  .top-user-name{display:none}
+  .top-avatar{width:34px;height:34px}
+  #settingsBtn{font-size:17px;padding:8px}
+  .voice-card{min-height:88vh;border-radius:24px}
+  .voice-orb{width:175px;height:175px;margin:38px 0 22px}
+
+  .settings-panel{
+    position:fixed;
+    top:66px;
+    right:10px;
+    width:min(350px,calc(100vw - 20px));
+    max-height:calc(100dvh - 82px);
+    overflow:auto;
+  }
+
+  .messages{
+    padding:18px 10px 132px;
+    scroll-padding-bottom:120px;
+  }
+  .messages-inner{width:100%;max-width:820px}
+  .welcome{margin:13vh auto 0;padding:0 12px}
+  .welcome h1{font-size:28px}
+  .bubble{max-width:88%;font-size:15px}
+
+  .composer-area{
+    left:0;
+    right:0;
+    padding:10px 10px max(10px,env(safe-area-inset-bottom));
+    background:linear-gradient(transparent,var(--bg) 22%);
+  }
+  .composer{width:100%;max-width:820px;border-radius:18px}
+  textarea{min-width:0;font-size:16px}
+  .voice-btn,.icon-send{width:40px;height:40px}
+
+  .search-results{
+    top:45px;
+    max-height:55dvh;
+    overflow:auto;
+  }
+
+  .login-overlay{padding:12px}
+  .login-card{max-height:92dvh;overflow:auto;padding:22px}
+}
+
+@media(min-width:701px){
+  .mobile-drawer-btn,.drawer-backdrop{display:none!important}
+}
+
+@media(min-width:701px) and (max-width:1050px){
+  .sidebar{width:220px}
+  .composer-area{left:220px}
+  .search-wrap{max-width:500px}
+  .messages-inner,.composer{max-width:760px}
+}
+
+@media(max-width:390px){
+  .topbar{padding-left:54px;gap:5px}
+  .top-title{display:none}
+  #loginTop{padding:7px}
+  #settingsBtn{padding:7px}
+  .search{font-size:13px}
+  .welcome h1{font-size:25px}
+}
+
+body.dark{--bg:#111;--panel:#181818;--text:#f5f5f5;--muted:#a1a1aa;--border:#303030;--user:#17304a}
+body.dark .search,body.dark .settings-panel,body.dark .modal,body.dark .login-card,body.dark .composer,body.dark .login-btn,body.dark .secondary{background:#181818;color:var(--text)}
+body.dark .bubble{background:#242424}body.dark .message.user .bubble{background:var(--user)}
+body.dark .new-chat{background:#181818;color:var(--text)}
+</style>
 </head>
-
-
 <body>
-
-
-  <!-- =====================================================
-       MOBILE MENU BUTTON
-  ===================================================== -->
-
-  <button
-    class="mobile-menu-btn"
-    id="mobileMenuBtn"
-    onclick="toggleMobileSidebar()"
-    aria-label="Open menu"
-  >
-    ☰
-  </button>
-
-
-  <!-- =====================================================
-       SIDEBAR OVERLAY
-  ===================================================== -->
-
-  <div
-    class="sidebar-overlay"
-    id="sidebarOverlay"
-    onclick="closeMobileSidebar()"
-  ></div>
-
-
-  <!-- =====================================================
-       SIDEBAR
-  ===================================================== -->
-
-  <aside
-    class="sidebar"
-    id="sidebar"
-  >
-
-    <div class="sidebar-header">
-
-      <div class="logo">
-        🌾 Village AI
-      </div>
-
-
-      <button
-        class="sidebar-close"
-        onclick="closeMobileSidebar()"
-        aria-label="Close menu"
-      >
-        ✕
-      </button>
-
+<div class="app">
+  <aside class="sidebar">
+    <div class="logo">🌾 Village AI</div>
+    <button class="new-chat" id="newChat">＋ New chat</button>
+    <div class="side-bottom">
+      <button class="side-link" id="profileSide">👤 <span id="sideUser">Login</span></button>
+      <button class="side-link" id="aboutSide">ℹ️ About Village AI</button>
     </div>
-
-
-    <button
-      class="new-chat"
-      onclick="newChat(); closeMobileSidebar();"
-    >
-      ＋ New chat
-    </button>
-
-
-    <div class="sidebar-bottom">
-
-      <strong>
-        Village AI
-      </strong>
-
-      <br>
-
-      <span>
-        Your personal AI assistant
-      </span>
-
-    </div>
-
   </aside>
 
+  <button class="mobile-drawer-btn" id="mobileDrawerBtn" aria-label="Open menu">☰</button>
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+  <main class="main">
+    <header class="topbar">
+      <button class="mobile-menu" id="mobileMenu">☰</button>
+      <div class="top-title">🌾 Village AI</div>
+      <div class="search-wrap">
+        <span class="search-icon">🔎</span>
+        <input id="search" class="search" placeholder="Search users by username..." autocomplete="off">
+        <div id="results" class="search-results" hidden></div>
+      </div>
+      <button class="profile-top" id="loginTop" aria-label="Login or profile"><span class="top-avatar" id="topAvatar">L</span><span class="top-user-name" id="topUserName">Login</span></button>
+      <button class="login-btn" id="settingsBtn" title="Settings">⚙️</button>
 
-  <!-- =====================================================
-       TOPBAR
-  ===================================================== -->
+      <div class="settings-panel" id="settingsPanel">
+        <button class="close" id="closeSettings">×</button>
+        <div class="settings-title">⚙️ Settings</div>
+        <div class="setting">
+          <div class="setting-row">
+            <div><div class="setting-label">Daylight</div><div class="setting-desc">Use a bright daylight interface</div></div>
+            <input type="checkbox" id="darkToggle">
+          </div>
+        </div>
+        <div class="setting">
+          <div class="setting-label">Language</div>
+          <div class="setting-desc">Choose how Village AI answers</div>
+          <select id="language">
+            <option value="en">English</option><option value="hi">Hindi</option>
+          </select>
+        </div>
+        <div class="setting">
+          <div class="setting-label">Theme</div>
+          <div class="setting-desc">Choose accent color</div>
+          <div class="theme-row">
+            <button class="theme" style="background:#267a35" data-theme="#267a35"></button>
+            <button class="theme" style="background:#2563eb" data-theme="#2563eb"></button>
+            <button class="theme" style="background:#7c3aed" data-theme="#7c3aed"></button>
+            <button class="theme" style="background:#ea580c" data-theme="#ea580c"></button>
+          </div>
+        </div>
+        <div class="setting" id="accountSetting">
+          <div class="setting-label">Account</div>
+          <div class="setting-desc" id="accountText">You are using Village AI as a guest.</div>
+          <div id="accountActions" style="margin-top:10px"></div>
+        </div>
+        <div class="setting" id="premiumSetting" style="display:none">
+          <div class="setting-label">🔵 Village AI Premium</div>
+          <div class="setting-desc">Apply for a Premium Blue Tick for your profile.</div>
+          <button class="secondary" id="premiumApply" style="margin-top:10px">Apply for Blue Tick</button>
+        </div>
+        <div class="setting" id="aboutSetting" style="cursor:pointer">
+          <div class="setting-label">ℹ️ About Village AI</div>
+          <div class="setting-desc">Learn what makes Village AI different</div>
+        </div>
+      </div>
+    </header>
 
-  <div class="topbar">
+    <section class="messages" id="messages">
+      <div class="messages-inner" id="messagesInner">
+        <div class="welcome" id="welcome">
+          <div class="welcome-icon">🌾</div>
+          <h1>How can I help you?</h1>
+          <p>Village AI — a simple AI made for village communities and local needs.</p>
+        </div>
+      </div>
+    </section>
 
-    <div class="topbar-title">
-      🌾 Village AI
+    <div class="composer-area">
+      <div id="mediaPreview" class="media-preview" hidden></div>
+      <form class="composer" id="composer">
+        <button class="media-btn" id="mediaBtn" type="button" title="Send image or video" aria-label="Send image or video">＋</button>
+        <input id="mediaInput" type="file" accept="image/*,video/*" hidden>
+        <button class="voice-btn" id="voiceBtn" type="button" title="Voice talk" aria-label="Voice talk">🎙️</button>
+        <textarea id="input" rows="1" placeholder="Message Village AI..."></textarea>
+        <button class="icon-send" id="send" type="submit">↑</button>
+      </form>
+      <div class="notice">Village AI can make mistakes. Check important information.</div>
     </div>
+  </main>
+</div>
 
 
-    <div class="topbar-actions">
-
-      <button
-        class="icon-btn"
-        onclick="toggleSettings()"
-        title="Settings"
-        aria-label="Settings"
-      >
-        ⚙️
-      </button>
-
+<div class="voice-overlay" id="voiceOverlay">
+  <div class="voice-card">
+    <button class="voice-close" id="voiceClose">×</button>
+    <div class="voice-brand">🌾</div>
+    <div class="voice-title">Village AI</div>
+    <div class="voice-status" id="voiceStatus">Tap the microphone to talk</div>
+    <div class="voice-orb" id="voiceOrb"><span>🎙️</span></div>
+    <div class="voice-transcript" id="voiceTranscript"></div>
+    <div class="voice-controls">
+      <button class="voice-control" id="voiceMute" title="Mute">🎙️</button>
+      <button class="voice-main" id="voiceMain" title="Start voice chat">🎙️</button>
+      <button class="voice-control" id="voiceEnd" title="End voice chat">×</button>
     </div>
-
-
-    <!-- ===================================================
-         SETTINGS PANEL
-    =================================================== -->
-
-    <div
-      class="settings-panel"
-      id="settingsPanel"
-    >
-
-      <div class="settings-title">
-        ⚙️ Settings
-      </div>
-
-
-      <!-- DARK MODE -->
-
-      <div class="setting-item">
-
-        <div class="setting-left">
-
-          <div class="setting-icon">
-            🌞
-          </div>
-
-          <div>
-
-            <div class="setting-label">
-              Daylight / Dark mode
-            </div>
-
-            <div class="setting-description">
-              Change appearance
-            </div>
-
-          </div>
-
-        </div>
-
-
-        <label class="switch">
-
-          <input
-            type="checkbox"
-            id="darkModeToggle"
-            onchange="toggleDarkMode()"
-          >
-
-          <span class="slider"></span>
-
-        </label>
-
-      </div>
-
-
-      <!-- LANGUAGE -->
-
-      <div class="setting-item">
-
-        <div class="setting-left">
-
-          <div class="setting-icon">
-            🌐
-          </div>
-
-          <div>
-
-            <div class="setting-label">
-              Language
-            </div>
-
-            <div class="setting-description">
-              Hindi / English
-            </div>
-
-          </div>
-
-        </div>
-
-
-        <select
-          class="setting-select"
-          id="languageSelect"
-          onchange="changeLanguage()"
-        >
-
-          <option value="en">
-            English
-          </option>
-
-          <option value="hi">
-            हिंदी
-          </option>
-
-        </select>
-
-      </div>
-
-
-      <!-- VOICE RESPONSE -->
-
-      <div class="setting-item">
-
-        <div class="setting-left">
-
-          <div class="setting-icon">
-            🔊
-          </div>
-
-          <div>
-
-            <div class="setting-label">
-              Voice response
-            </div>
-
-            <div class="setting-description">
-              Speak AI responses
-            </div>
-
-          </div>
-
-        </div>
-
-
-        <label class="switch">
-
-          <input
-            type="checkbox"
-            id="voiceResponseToggle"
-            onchange="saveSettings()"
-          >
-
-          <span class="slider"></span>
-
-        </label>
-
-      </div>
-
-
-      <!-- CLEAR CHAT -->
-
-      <div
-        class="setting-item"
-        onclick="clearChat()"
-      >
-
-        <div class="setting-left">
-
-          <div class="setting-icon">
-            🧹
-          </div>
-
-          <div>
-
-            <div class="setting-label">
-              Clear chat
-            </div>
-
-            <div class="setting-description">
-              Delete current conversation
-            </div>
-
-          </div>
-
-        </div>
-
-      </div>
-
-
-      <!-- CHAT HISTORY -->
-
-      <div
-        class="setting-item"
-        onclick="showHistory()"
-      >
-
-        <div class="setting-left">
-
-          <div class="setting-icon">
-            💾
-          </div>
-
-          <div>
-
-            <div class="setting-label">
-              Chat history
-            </div>
-
-            <div class="setting-description">
-              Saved in this browser
-            </div>
-
-          </div>
-
-        </div>
-
-      </div>
-
-
-      <!-- THEME -->
-
-      <div class="setting-item">
-
-        <div class="setting-left">
-
-          <div class="setting-icon">
-            🎨
-          </div>
-
-          <div>
-
-            <div class="setting-label">
-              Theme
-            </div>
-
-            <div class="setting-description">
-              Choose accent color
-            </div>
-
-          </div>
-
-        </div>
-
-
-        <div class="theme-colors">
-
-          <div
-            class="theme-color theme-green"
-            onclick="setTheme('#267a35')"
-            title="Green"
-          ></div>
-
-          <div
-            class="theme-color theme-blue"
-            onclick="setTheme('#2563eb')"
-            title="Blue"
-          ></div>
-
-          <div
-            class="theme-color theme-purple"
-            onclick="setTheme('#7c3aed')"
-            title="Purple"
-          ></div>
-
-          <div
-            class="theme-color theme-orange"
-            onclick="setTheme('#ea580c')"
-            title="Orange"
-          ></div>
-
-        </div>
-
-      </div>
-
-
-      <!-- ABOUT -->
-
-      <div
-        class="setting-item"
-        onclick="showAbout()"
-      >
-
-        <div class="setting-left">
-
-          <div class="setting-icon">
-            ℹ️
-          </div>
-
-          <div>
-
-            <div class="setting-label">
-              About Village AI
-            </div>
-
-            <div class="setting-description">
-              About this assistant
-            </div>
-
-          </div>
-
-        </div>
-
-      </div>
-
-    </div>
-
+    <div class="voice-hint">Speak naturally. Village AI will listen and reply.</div>
   </div>
+</div>
 
-
-  <!-- =====================================================
-       MESSAGES
-  ===================================================== -->
-
-  <div
-    class="messages"
-    id="messages"
-  >
-
-    <div
-      class="welcome"
-      id="welcome"
-    >
-
-      <div class="welcome-icon">
-        🌾
-      </div>
-
-
-      <h1 id="welcomeTitle">
-        How can I help you?
-      </h1>
-
-
-      <p id="welcomeText">
-        Ask anything to Village AI
-      </p>
-
+<div class="modal-overlay" id="aboutModal">
+  <div class="modal">
+    <button class="close" id="closeAbout">×</button>
+    <div style="margin-bottom:18px">
+      <button class="secondary" id="aboutBack">← Back</button>
     </div>
-
+    <h2>🌾 About Village AI</h2>
+    <p>Village AI is being built as a local digital companion for village communities. The goal is simple: make AI easy to use while creating a place where local information, local needs and local people can come together.</p>
+    <p>AI answers should be checked for important decisions. Local information will only be truly reliable when the Village AI backend is connected to verified local data.</p>
   </div>
+</div>
 
+<div class="toast" id="toast"></div>
 
-  <!-- =====================================================
-       INPUT
-  ===================================================== -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-card">
+    <button class="close" id="closeLogin">×</button>
+    <h1>🌾 Village AI</h1>
+    <p>Login to create your username and chat with other Village AI users.</p>
 
-  <div class="input-area">
+    <button class="google-login" id="googleLogin">G&nbsp;&nbsp; Continue with Google</button>
 
-    <div class="input-box">
+    <div class="login-divider"><span>or</span></div>
 
-      <textarea
-        id="userInput"
-        placeholder="Message Village AI..."
-        rows="1"
-        onkeydown="handleKey(event)"
-      ></textarea>
+    <input class="login-input" id="emailLogin" type="email" placeholder="Email address" autocomplete="email">
+    <input class="login-input" id="passwordLogin" type="password" placeholder="Password" autocomplete="current-password">
 
-
-      <div class="input-buttons">
-
-        <button
-          class="mic-btn"
-          id="micBtn"
-          onclick="startVoiceInput()"
-          title="Voice input"
-          aria-label="Voice input"
-        >
-          🎤
-        </button>
-
-
-        <button
-          class="send-btn"
-          id="sendBtn"
-          onclick="sendMessage()"
-          title="Send"
-          aria-label="Send message"
-        >
-          ↑
-        </button>
-
-      </div>
-
+    <div class="email-actions">
+      <button class="primary" id="emailLoginBtn">Login with Email</button>
+      <button class="secondary" id="emailSignupBtn">Create account</button>
     </div>
 
-
-    <div
-      class="notice"
-      id="notice"
-    >
-      Village AI can make mistakes.
-      Check important information.
-    </div>
-
+    <p id="loginMessage" style="font-size:12px"></p>
   </div>
-
-
-  <!-- =====================================================
-       ABOUT MODAL
-  ===================================================== -->
-
-  <div
-    class="modal-overlay"
-    id="aboutModal"
-    onclick="closeAbout(event)"
-  >
-
-    <div
-      class="modal"
-      onclick="event.stopPropagation()"
-    >
-
-      <h2>
-        🌾 About Village AI
-      </h2>
-
-
-      <p id="aboutText">
-
-        Village AI is your personal AI assistant.
-        You can chat with it, use voice input,
-        hear voice responses, change language,
-        switch themes and save your chat history.
-
-      </p>
-
-
-      <button
-        class="modal-close"
-        onclick="closeAbout()"
-      >
-        Close
-      </button>
-
-    </div>
-
-  </div>
-
-
-  <!-- =====================================================
-       JAVASCRIPT
-  ===================================================== -->
-
-  <script>
-
-
-    /* =====================================================
-       MOBILE SIDEBAR
-    ===================================================== */
-
-    function toggleMobileSidebar() {
-
-      const sidebar =
-        document.getElementById("sidebar");
-
-      const overlay =
-        document.getElementById("sidebarOverlay");
-
-      sidebar.classList.toggle("mobile-open");
-
-      overlay.classList.toggle("mobile-open");
-
-    }
-
-
-    function closeMobileSidebar() {
-
-      const sidebar =
-        document.getElementById("sidebar");
-
-      const overlay =
-        document.getElementById("sidebarOverlay");
-
-      sidebar.classList.remove("mobile-open");
-
-      overlay.classList.remove("mobile-open");
-
-    }
-
-
-    /* =====================================================
-       SETTINGS
-    ===================================================== */
-
-    function toggleSettings() {
-
-      const panel =
-        document.getElementById("settingsPanel");
-
-      panel.classList.toggle("show");
-
-    }
-
-
-    /* Close settings when clicking outside */
-
-    document.addEventListener("click", function(event) {
-
-      const panel =
-        document.getElementById("settingsPanel");
-
-      const button =
-        document.querySelector(".icon-btn");
-
-      if (
-        panel &&
-        !panel.contains(event.target) &&
-        button &&
-        !button.contains(event.target)
-      ) {
-
-        panel.classList.remove("show");
-
-      }
-
-    });
-
-
-    /* =====================================================
-       DARK MODE
-    ===================================================== */
-
-    function toggleDarkMode() {
-
-      const toggle =
-        document.getElementById("darkModeToggle");
-
-      document.body.classList.toggle(
-        "dark",
-        toggle.checked
-      );
-
-      localStorage.setItem(
-        "villageAI_darkMode",
-        toggle.checked
-      );
-
-    }
-
-
-    /* =====================================================
-       LOAD DARK MODE
-    ===================================================== */
-
-    function loadDarkMode() {
-
-      const saved =
-        localStorage.getItem(
-          "villageAI_darkMode"
-        );
-
-      const enabled =
-        saved === "true";
-
-      document.body.classList.toggle(
-        "dark",
-        enabled
-      );
-
-      const toggle =
-        document.getElementById("darkModeToggle");
-
-      if (toggle) {
-        toggle.checked = enabled;
-      }
-
-    }
-
-
-    /* =====================================================
-       LANGUAGE
-    ===================================================== */
-
-    function changeLanguage() {
-
-      const select =
-        document.getElementById("languageSelect");
-
-      const language =
-        select.value;
-
-      localStorage.setItem(
-        "villageAI_language",
-        language
-      );
-
-
-      if (language === "hi") {
-
-        document.getElementById(
-          "welcomeTitle"
-        ).textContent =
-          "मैं आपकी कैसे मदद कर सकता हूँ?";
-
-        document.getElementById(
-          "welcomeText"
-        ).textContent =
-          "Village AI से कुछ भी पूछें";
-
-        document.getElementById(
-          "userInput"
-        ).placeholder =
-          "Village AI को संदेश भेजें...";
-
-      } else {
-
-        document.getElementById(
-          "welcomeTitle"
-        ).textContent =
-          "How can I help you?";
-
-        document.getElementById(
-          "welcomeText"
-        ).textContent =
-          "Ask anything to Village AI";
-
-        document.getElementById(
-          "userInput"
-        ).placeholder =
-          "Message Village AI...";
-
-      }
-
-    }
-
-
-    /* =====================================================
-       LOAD LANGUAGE
-    ===================================================== */
-
-    function loadLanguage() {
-
-      const saved =
-        localStorage.getItem(
-          "villageAI_language"
-        );
-
-      const select =
-        document.getElementById(
-          "languageSelect"
-        );
-
-      if (saved && select) {
-
-        select.value = saved;
-
-        changeLanguage();
-
-      }
-
-    }
-
-
-    /* =====================================================
-       SAVE SETTINGS
-    ===================================================== */
-
-    function saveSettings() {
-
-      const voiceToggle =
-        document.getElementById(
-          "voiceResponseToggle"
-        );
-
-      localStorage.setItem(
-        "villageAI_voiceResponse",
-        voiceToggle.checked
-      );
-
-    }
-
-
-    /* =====================================================
-       LOAD SETTINGS
-    ===================================================== */
-
-    function loadSettings() {
-
-      const voiceSaved =
-        localStorage.getItem(
-          "villageAI_voiceResponse"
-        );
-
-      const voiceToggle =
-        document.getElementById(
-          "voiceResponseToggle"
-        );
-
-      if (
-        voiceToggle &&
-        voiceSaved !== null
-      ) {
-
-        voiceToggle.checked =
-          voiceSaved === "true";
-
-      }
-
-    }
-
-
-    /* =====================================================
-       THEME
-    ===================================================== */
-
-    function setTheme(color) {
-
-      document.documentElement.style
-        .setProperty("--primary", color);
-
-      localStorage.setItem(
-        "villageAI_theme",
-        color
-      );
-
-    }
-
-
-    /* =====================================================
-       LOAD THEME
-    ===================================================== */
-
-    function loadTheme() {
-
-      const saved =
-        localStorage.getItem(
-          "villageAI_theme"
-        );
-
-      if (saved) {
-
-        document.documentElement.style
-          .setProperty("--primary", saved);
-
-      }
-
-    }
-
-
-    /* =====================================================
-       NEW CHAT
-    ===================================================== */
-
-    function newChat() {
-
-      const messages =
-        document.getElementById("messages");
-
-      messages.innerHTML = `
-
-        <div
-          class="welcome"
-          id="welcome"
-        >
-
-          <div class="welcome-icon">
-            🌾
-          </div>
-
-          <h1 id="welcomeTitle">
-            How can I help you?
-          </h1>
-
-          <p id="welcomeText">
-            Ask anything to Village AI
-          </p>
-
-        </div>
-
-      `;
-
-      document.getElementById(
-        "userInput"
-      ).focus();
-
-    }
-
-
-    /* =====================================================
-       CLEAR CHAT
-    ===================================================== */
-
-    function clearChat() {
-
-      if (
-        !confirm(
-          "Are you sure you want to clear this chat?"
-        )
-      ) {
-        return;
-      }
-
-      newChat();
-
-      localStorage.removeItem(
-        "villageAI_chatHistory"
-      );
-
-      document
-        .getElementById("settingsPanel")
-        .classList.remove("show");
-
-    }
-
-
-    /* =====================================================
-       CHAT HISTORY
-    ===================================================== */
-
-    function showHistory() {
-
-      const history =
-        localStorage.getItem(
-          "villageAI_chatHistory"
-        );
-
-      if (history) {
-
-        alert(
-          "Chat history is saved in this browser."
-        );
-
-      } else {
-
-        alert(
-          "No saved chat history found."
-        );
-
-      }
-
-    }
-
-
-    /* =====================================================
-       ABOUT
-    ===================================================== */
-
-    function showAbout() {
-
-      document
-        .getElementById("aboutModal")
-        .classList.add("show");
-
-      document
-        .getElementById("settingsPanel")
-        .classList.remove("show");
-
-    }
-
-
-    function closeAbout(event) {
-
-      if (
-        event &&
-        event.target !== event.currentTarget
-      ) {
-        return;
-      }
-
-      document
-        .getElementById("aboutModal")
-        .classList.remove("show");
-
-    }
-
-
-    /* =====================================================
-       ESC KEY
-    ===================================================== */
-
-    document.addEventListener(
-      "keydown",
-      function(event) {
-
-        if (event.key === "Escape") {
-
-          closeMobileSidebar();
-
-          document
-            .getElementById("settingsPanel")
-            .classList.remove("show");
-
-          document
-            .getElementById("aboutModal")
-            .classList.remove("show");
-
-        }
-
-      }
-    );
-
-
-    /* =====================================================
-       TEXTAREA AUTO HEIGHT
-    ===================================================== */
-
-    const userInput =
-      document.getElementById("userInput");
-
-
-    userInput.addEventListener(
-      "input",
-      function() {
-
-        this.style.height = "auto";
-
-        this.style.height =
-          Math.min(
-            this.scrollHeight,
-            150
-          ) + "px";
-
-      }
-    );
-
-
-    /* =====================================================
-       ENTER / SHIFT + ENTER
-    ===================================================== */
-
-    function handleKey(event) {
-
-      if (
-        event.key === "Enter" &&
-        !event.shiftKey
-      ) {
-
-        event.preventDefault();
-
-        sendMessage();
-
-      }
-
-    }
-
-
-    /* =====================================================
-       SEND MESSAGE
-       
-       IMPORTANT:
-       Agar aapke paas already AI API wala
-       sendMessage() function hai, to
-       us function ko yahan replace karein.
-    ===================================================== */
-
-    function sendMessage() {
-
-      const input =
-        document.getElementById(
-          "userInput"
-        );
-
-      const text =
-        input.value.trim();
-
-      if (!text) return;
-
-
-      const welcome =
-        document.getElementById(
-          "welcome"
-        );
-
-      if (welcome) {
-        welcome.remove();
-      }
-
-
-      addMessage(
-        text,
-        "user"
-      );
-
-
-      input.value = "";
-
-      input.style.height = "auto";
-
-
-      /*
-        Yahan aapka existing AI API code
-        call hona chahiye.
-
-        Example:
-
-        getAIResponse(text);
-
-      */
-
-    }
-
-
-    /* =====================================================
-       ADD MESSAGE
-    ===================================================== */
-
-    function addMessage(
-      text,
-      type
-    ) {
-
-      const messages =
-        document.getElementById(
-          "messages"
-        );
-
-
-      const message =
-        document.createElement(
-          "div"
-        );
-
-      message.className =
-        "message " + type;
-
-
-      const bubble =
-        document.createElement(
-          "div"
-        );
-
-      bubble.className =
-        "message-bubble";
-
-
-      bubble.textContent =
-        text;
-
-
-      message.appendChild(
-        bubble
-      );
-
-
-      messages.appendChild(
-        message
-      );
-
-
-      messages.scrollTop =
-        messages.scrollHeight;
-
-    }
-
-
-    /* =====================================================
-       VOICE INPUT
-    ===================================================== */
-
-    function startVoiceInput() {
-
-      const SpeechRecognition =
-        window.SpeechRecognition ||
-        window.webkitSpeechRecognition;
-
-
-      if (!SpeechRecognition) {
-
-        alert(
-          "Voice input is not supported in this browser."
-        );
-
-        return;
-
-      }
-
-
-      const recognition =
-        new SpeechRecognition();
-
-
-      recognition.lang =
-        document.getElementById(
-          "languageSelect"
-        ).value === "hi"
-          ? "hi-IN"
-          : "en-IN";
-
-
-      recognition.interimResults =
-        false;
-
-
-      recognition.maxAlternatives =
-        1;
-
-
-      const micBtn =
-        document.getElementById(
-          "micBtn"
-        );
-
-
-      micBtn.style.opacity =
-        "0.5";
-
-
-      recognition.start();
-
-
-      recognition.onresult =
-        function(event) {
-
-          const text =
-            event.results[0][0].transcript;
-
-          document.getElementById(
-            "userInput"
-          ).value = text;
-
-        };
-
-
-      recognition.onerror =
-        function() {
-
-          alert(
-            "Voice input could not be started."
-          );
-
-        };
-
-
-      recognition.onend =
-        function() {
-
-          micBtn.style.opacity =
-            "1";
-
-        };
-
-    }
-
-
-    /* =====================================================
-       VOICE RESPONSE
-       
-       Is function ko apne AI response ke baad
-       use kar sakte hain:
-       
-       speakText("AI response here");
-    ===================================================== */
-
-    function speakText(text) {
-
-      const toggle =
-        document.getElementById(
-          "voiceResponseToggle"
-        );
-
-
-      if (
-        !toggle ||
-        !toggle.checked
-      ) {
-        return;
-      }
-
-
-      if (
-        !("speechSynthesis" in window)
-      ) {
-        return;
-      }
-
-
+</div>
+
+<script type="module">
+/* =========================================================
+   VILLAGE AI FRONTEND
+   Replace only the Firebase Web App config below.
+   NEVER put firebase-service-account.json or a private key here.
+   ========================================================= */
+
+import {initializeApp} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import {getAuth,GoogleAuthProvider,signInWithPopup,signInWithEmailAndPassword,createUserWithEmailAndPassword,onAuthStateChanged,signOut}
+  from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+
+const firebaseConfig={
+  apiKey:"YOUR_FIREBASE_WEB_API_KEY",
+  authDomain:"village-ai-9d7d5.firebaseapp.com",
+  projectId:"village-ai-9d7d5",
+  storageBucket:"village-ai-9d7d5.firebasestorage.app",
+  messagingSenderId:"YOUR_MESSAGING_SENDER_ID",
+  appId:"YOUR_FIREBASE_APP_ID"
+};
+
+/* If frontend is served by your FastAPI backend, leave this empty. */
+const API_BASE="";
+
+let auth=null,currentUser=null,currentToken=null,mode="ai",chatUser=null;
+const $=id=>document.getElementById(id);
+
+function toast(text){$("toast").textContent=text;$("toast").style.display="block";setTimeout(()=>$("toast").style.display="none",2600)}
+function escapeHtml(v){return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
+
+async function api(path,options={}){
+  const headers={...(options.headers||{})};
+  if(!(options.body instanceof FormData)) headers["Content-Type"]="application/json";
+  if(currentToken) headers.Authorization="Bearer "+currentToken;
+  const r=await fetch(API_BASE+path,{...options,headers});
+  let data={};try{data=await r.json()}catch{}
+  if(!r.ok)throw new Error(data.detail||`Request failed (${r.status})`);
+  return data;
+}
+
+function addMessage(text,who="assistant"){
+  $("welcome")?.remove();
+  const row=document.createElement("div");row.className="message "+who;
+  const av=document.createElement("div");av.className="avatar";av.textContent=who==="user"?"U":"🌾";
+  const bubble=document.createElement("div");bubble.className="bubble";bubble.textContent=text;
+  if(who==="user")row.append(bubble,av);else row.append(av,bubble);
+  $("messagesInner").appendChild(row);
+  $("messages").scrollTop=$("messages").scrollHeight;
+}
+
+function newChat(){
+  clearMedia();mode="ai";chatUser=null;
+  $("messagesInner").innerHTML=`<div class="welcome" id="welcome"><div class="welcome-icon">🌾</div><h1>How can I help you?</h1><p>Village AI — a simple AI made for village communities and local needs.</p></div>`;
+  $("input").placeholder="Message Village AI...";
+}
+
+
+/* Image / video selection for user-to-user chat.
+   Backend upload endpoint can be connected later without changing the UI. */
+let selectedMedia=null;
+$("mediaBtn").onclick=()=>{
+  if(mode!=="user"){
+    toast("Image/video sharing is available in user-to-user chat.");
+    return;
+  }
+  if(!currentUser){toast("Login required.");return}
+  $("mediaInput").click();
+};
+$("mediaInput").onchange=e=>{
+  const file=e.target.files?.[0];
+  if(!file)return;
+  if(!file.type.startsWith("image/")&&!file.type.startsWith("video/")){
+    toast("Only image or video files are allowed.");e.target.value="";return;
+  }
+  selectedMedia=file;
+  $("mediaPreview").hidden=false;
+  $("mediaPreview").innerHTML=`<span class="file-chip">${file.type.startsWith("image/")?"🖼️":"🎬"} ${escapeHtml(file.name)} <button type="button" id="removeMedia">×</button></span>`;
+  $("removeMedia").onclick=clearMedia;
+};
+function clearMedia(){
+  selectedMedia=null;$("mediaInput").value="";$("mediaPreview").hidden=true;$("mediaPreview").innerHTML="";
+}
+
+async function sendAI(text){
+  addMessage(text,"user");$("send").disabled=true;
+  try{
+    const d=await api("/api/chat",{method:"POST",body:JSON.stringify({message:text,language:$("language").value})});
+    const answer=d.response||"No response received.";
+    addMessage(answer);
+    if(voiceOpen && "speechSynthesis" in window){
+      const utter=new SpeechSynthesisUtterance(answer);
+      utter.lang=$("language").value==="hi"?"hi-IN":"en-IN";
+      utter.rate=.96;
       window.speechSynthesis.cancel();
-
-
-      const speech =
-        new SpeechSynthesisUtterance(
-          text
-        );
-
-
-      const language =
-        document.getElementById(
-          "languageSelect"
-        ).value;
-
-
-      speech.lang =
-        language === "hi"
-          ? "hi-IN"
-          : "en-IN";
-
-
-      speech.rate = 1;
-
-      speech.pitch = 1;
-
-
-      window.speechSynthesis.speak(
-        speech
-      );
-
+      window.speechSynthesis.speak(utter);
+      $("voiceStatus").textContent="Speaking…";
+      utter.onend=()=>{if(voiceOpen)$("voiceStatus").textContent="Tap the microphone to talk";};
     }
+  }catch(e){addMessage("⚠️ "+e.message)}
+  finally{$("send").disabled=false}
+}
 
 
-    /* =====================================================
-       LOAD EVERYTHING
-    ===================================================== */
+async function sendUserMedia(text,file){
+  if(!currentUser||!chatUser)return;
+  const fileName=file.name;
+  addMessage((text?text+" ":"")+`[${file.type.startsWith("image/")?"Image":"Video"}: ${fileName}]`,"user");
+  $("send").disabled=true;
+  try{
+    /* Expected future backend route:
+       POST /api/users/{username}/media as multipart/form-data.
+       The frontend is ready; connect this endpoint in the backend next. */
+    const fd=new FormData();
+    fd.append("file",file);
+    if(text)fd.append("message",text);
+    await api("/api/users/"+encodeURIComponent(chatUser.username)+"/media",{method:"POST",body:fd});
+    clearMedia();
+  }catch(e){
+    addMessage("⚠️ Media sending is not connected in the backend yet. The UI is ready for it.");
+  }finally{$("send").disabled=false}
+}
 
-    document.addEventListener(
-      "DOMContentLoaded",
-      function() {
+async function sendUser(text){
+  if(!currentUser){toast("Login required to chat with another user.");return}
+  addMessage(text,"user");$("send").disabled=true;
+  try{
+    await api("/api/users/"+encodeURIComponent(chatUser.username)+"/message",{method:"POST",body:JSON.stringify({message:text})});
+  }catch(e){addMessage("⚠️ "+e.message)}
+  finally{$("send").disabled=false}
+}
 
-        loadDarkMode();
+$("composer").addEventListener("submit",e=>{
+  e.preventDefault();
+  const text=$("input").value.trim();
+  if(!text && !selectedMedia)return;
+  const media=selectedMedia;
+  $("input").value="";$("input").style.height="auto";
+  if(mode==="user" && media){
+    sendUserMedia(text,media);
+  }else if(mode==="ai"){
+    if(text)sendAI(text);
+    else toast("AI chat currently supports text and voice input.");
+  }else if(text){
+    sendUser(text);
+  }
+});
+$("input").addEventListener("input",e=>{e.target.style.height="auto";e.target.style.height=Math.min(e.target.scrollHeight,150)+"px"});
+$("input").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();$("composer").requestSubmit()}});
 
-        loadLanguage();
+$("newChat").onclick=newChat;
 
-        loadSettings();
+$("settingsBtn").onclick=()=>$("settingsPanel").classList.toggle("open");
+$("closeSettings").onclick=()=>$("settingsPanel").classList.remove("open");
+$("aboutSide").onclick=()=>$("aboutModal").classList.add("open");
+$("aboutSetting").onclick=()=>$("aboutModal").classList.add("open");
+$("closeAbout").onclick=()=>$("aboutModal").classList.remove("open");
+$("aboutBack").onclick=()=>$("aboutModal").classList.remove("open");
+$("closeLogin").onclick=()=>$("loginOverlay").style.display="none";
 
-        loadTheme();
+$("darkToggle").onchange=e=>{
+  document.body.classList.toggle("dark",e.target.checked);
+  localStorage.setItem("village_dark",e.target.checked?"1":"0");
+};
+if(localStorage.getItem("village_dark")==="1"){$("darkToggle").checked=true;document.body.classList.add("dark")}
 
+document.querySelectorAll(".theme").forEach(b=>b.onclick=()=>{
+  document.documentElement.style.setProperty("--accent",b.dataset.theme);
+  localStorage.setItem("village_accent",b.dataset.theme);
+});
+const savedAccent=localStorage.getItem("village_accent");if(savedAccent)document.documentElement.style.setProperty("--accent",savedAccent);
+
+async function searchUsers(q){
+  if(!currentUser){$("results").innerHTML='<div class="result">🔐 Login to search Village AI users.</div>';$("results").hidden=false;return}
+  try{
+    const d=await api("/api/users/search?username="+encodeURIComponent(q));
+    $("results").innerHTML="";
+    if(!d.users?.length){$("results").innerHTML='<div class="result">No users found.</div>'}
+    else d.users.forEach(u=>{
+      const el=document.createElement("div");el.className="result";
+      const verified=!!(u.is_premium||u.verified||u.blue_tick);
+      el.innerHTML=`<div class="avatar">${u.photo_url?`<img src="${escapeHtml(u.photo_url)}">`:"👤"}</div><div><b>${escapeHtml(u.display_name||u.username)}${verified?'<span class="verified-tick">✓</span>':''}</b><div style="font-size:12px;color:#777">@${escapeHtml(u.username)}${verified?'<span class="verified-tick">✓</span>':''}</div></div>`;
+      el.onclick=()=>openUser(u);$("results").appendChild(el);
+    });
+    $("results").hidden=false;
+  }catch(e){$("results").innerHTML=`<div class="result">⚠️ ${escapeHtml(e.message)}</div>`;$("results").hidden=false}
+}
+let searchTimer;
+$("search").addEventListener("input",()=>{
+  clearTimeout(searchTimer);const q=$("search").value.trim();
+  if(q.length<2){$("results").hidden=true;return}
+  searchTimer=setTimeout(()=>searchUsers(q),250);
+});
+
+async function openUser(u){
+  if(!currentUser){toast("Please login first.");return}
+  clearMedia();mode="user";chatUser=u;$("results").hidden=true;$("search").value="";
+  $("input").placeholder="Message @"+u.username+"...";
+  $("messagesInner").innerHTML=`<div class="user-head"><button class="back" id="back">←</button><div class="avatar">${u.photo_url?`<img src="${escapeHtml(u.photo_url)}">`:"👤"}</div><div><b>${escapeHtml(u.display_name||u.username)}${(u.is_premium||u.verified||u.blue_tick)?'<span class="verified-tick">✓</span>':''}</b><div style="font-size:12px;color:#777">@${escapeHtml(u.username)}${(u.is_premium||u.verified||u.blue_tick)?'<span class="verified-tick">✓</span>':''}</div></div></div><div id="privateMessages"></div>`;
+  $("back").onclick=newChat;
+  try{
+    const d=await api("/api/users/"+encodeURIComponent(u.username)+"/messages");
+    const box=$("privateMessages");
+    if(!d.messages?.length)box.innerHTML='<div class="welcome" style="margin-top:40px"><div class="welcome-icon">💬</div><h2>Start chatting</h2><p>Send the first message.</p></div>';
+    else d.messages.forEach(m=>{
+      const row=document.createElement("div");row.className="message "+(m.sender_uid===currentUser.uid?"user":"assistant");
+      const bubble=document.createElement("div");bubble.className="bubble";bubble.textContent=m.message;
+      row.appendChild(bubble);box.appendChild(row);
+    });
+    $("messages").scrollTop=$("messages").scrollHeight;
+  }catch(e){addMessage("⚠️ "+e.message)}
+}
+
+async function login(){
+  if(!auth){$("loginMessage").textContent="Firebase Web App configuration is not filled yet.";return}
+  try{
+    $("googleLogin").disabled=true;
+    await signInWithPopup(auth,new GoogleAuthProvider());
+  }catch(e){$("loginMessage").textContent=e.message}
+  finally{$("googleLogin").disabled=false}
+}
+
+async function emailLogin(){
+  if(!auth){$("loginMessage").textContent="Firebase Web App configuration is not filled yet.";return}
+  const email=$("emailLogin").value.trim(), password=$("passwordLogin").value;
+  if(!email || !password){$("loginMessage").textContent="Email and password are required.";return}
+  try{
+    $("emailLoginBtn").disabled=true;
+    await signInWithEmailAndPassword(auth,email,password);
+  }catch(e){$("loginMessage").textContent=e.message}
+  finally{$("emailLoginBtn").disabled=false}
+}
+
+async function emailSignup(){
+  if(!auth){$("loginMessage").textContent="Firebase Web App configuration is not filled yet.";return}
+  const email=$("emailLogin").value.trim(), password=$("passwordLogin").value;
+  if(!email || !password){$("loginMessage").textContent="Email and password are required.";return}
+  if(password.length<6){$("loginMessage").textContent="Password must be at least 6 characters.";return}
+  try{
+    $("emailSignupBtn").disabled=true;
+    await createUserWithEmailAndPassword(auth,email,password);
+  }catch(e){$("loginMessage").textContent=e.message}
+  finally{$("emailSignupBtn").disabled=false}
+}
+
+$("googleLogin").onclick=login;
+$("emailLoginBtn").onclick=emailLogin;
+$("emailSignupBtn").onclick=emailSignup;
+$("loginTop").onclick=()=>currentUser?$("settingsPanel").classList.toggle("open"):$("loginOverlay").style.display="grid";
+$("profileSide").onclick=()=>currentUser?signOut(auth):$("loginOverlay").style.display="grid";
+
+async function afterLogin(user){
+  currentUser=user;currentToken=await user.getIdToken(true);
+  try{
+    const d=await api("/api/auth/sync",{method:"POST",body:"{}"});
+    const u=d.user;
+    $("sideUser").textContent="@"+u.username;
+    $("loginTop").textContent="Logout";
+    const verified = !!(u.is_premium || u.verified || u.blue_tick);
+    $("accountText").innerHTML=`Signed in as <b>${escapeHtml(u.display_name||"User")}${verified?'<span class="verified-tick">✓</span>':''}</b><br>@${escapeHtml(u.username)}${verified?'<span class="verified-tick">✓</span>':''}<br>${escapeHtml(u.email||"")}`;
+    $("premiumSetting").style.display="block";
+    $("premiumApply").onclick=()=>toast("Premium application link will be added here later.");
+    $("accountActions").innerHTML=`<button class="secondary" id="changeUsername">Change username</button>`;
+    $("changeUsername").onclick=changeUsername;
+    $("loginOverlay").style.display="none";
+    toast("Welcome to Village AI, @"+u.username);
+  }catch(e){$("loginMessage").textContent=e.message}
+}
+async function changeUsername(){
+  const old=$("accountText").textContent.match(/@([a-zA-Z0-9_]+)/)?.[1]||"";
+  const value=prompt("Choose your username (3-30 letters, numbers or _):",old);
+  if(!value)return;
+  try{
+    const d=await api("/api/profile/username",{method:"PUT",body:JSON.stringify({username:value})});
+    $("accountText").innerHTML=$("accountText").innerHTML.replace(/@[a-zA-Z0-9_]+/, "@"+d.username);
+    $("sideUser").textContent="@"+d.username;toast("Username updated.");
+  }catch(e){toast(e.message)}
+}
+
+try{
+  if(!firebaseConfig.apiKey.startsWith("YOUR_")&&!firebaseConfig.appId.startsWith("YOUR_")){
+    const app=initializeApp(firebaseConfig);auth=getAuth(app);
+    onAuthStateChanged(auth,async user=>{
+      if(user)await afterLogin(user);
+      else{
+        currentUser=null;currentToken=null;
+        $("topUserName").textContent="Login";
+        $("topAvatar").textContent="L";
+        $("accountText").textContent="You are using Village AI as a guest.";
       }
-    );
+    });
+  }else{
+    $("loginTop").title="Add Firebase Web App config first";
+  }
+}catch(e){console.error(e)}
 
-
-  </script>
-
+$("mobileMenu").onclick=()=>toast("On mobile, use the search bar and Settings button.");
+</script>
 </body>
-
 </html>
