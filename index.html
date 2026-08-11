@@ -346,14 +346,23 @@ import {initializeApp} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-
 import {getAuth,GoogleAuthProvider,signInWithPopup,signInWithEmailAndPassword,createUserWithEmailAndPassword,onAuthStateChanged,signOut}
   from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 
-const firebaseConfig={
-  apiKey:"YOUR_FIREBASE_WEB_API_KEY",
-  authDomain:"village-ai-9d7d5.firebaseapp.com",
-  projectId:"village-ai-9d7d5",
-  storageBucket:"village-ai-9d7d5.firebasestorage.app",
-  messagingSenderId:"YOUR_MESSAGING_SENDER_ID",
-  appId:"YOUR_FIREBASE_APP_ID"
+// Import the functions you need from the SDKs you need
+
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyBFlT-BhPIAmkYtotMGO6I-m4AaYRWex1o",
+  authDomain: "village-ai-9d7d5.firebaseapp.com",
+  projectId: "village-ai-9d7d5",
+  storageBucket: "village-ai-9d7d5.firebasestorage.app",
+  messagingSenderId: "815788593179",
+  appId: "1:815788593179:web:9b4a6347206a3b7aa8a8be"
 };
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
 
 /* If frontend is served by your FastAPI backend, leave this empty. */
 const API_BASE="";
