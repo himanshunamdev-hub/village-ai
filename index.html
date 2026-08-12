@@ -644,7 +644,30 @@ onAuthStateChanged(auth, async user => {
   }
 });
 
-$("mobileMenu").onclick=()=>toast("On mobile, use the search bar and Settings button.");
+const sidebar = document.querySelector(".sidebar");
+const drawerBackdrop = $("drawerBackdrop");
+const mobileDrawerBtn = $("mobileDrawerBtn");
+
+function openMobileMenu(){
+  sidebar.classList.add("open");
+  drawerBackdrop.classList.add("open");
+}
+
+function closeMobileMenu(){
+  sidebar.classList.remove("open");
+  drawerBackdrop.classList.remove("open");
+}
+
+mobileDrawerBtn.onclick = openMobileMenu;
+
+drawerBackdrop.onclick = closeMobileMenu;
+
+$("mobileMenu").onclick = openMobileMenu;
+
+// Sidebar buttons se bhi menu close ho
+$("newChat").addEventListener("click", closeMobileMenu);
+$("profileSide").addEventListener("click", closeMobileMenu);
+$("aboutSide").addEventListener("click", closeMobileMenu);
 </script>
 </body>
 </html>
