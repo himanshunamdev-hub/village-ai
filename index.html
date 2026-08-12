@@ -342,16 +342,18 @@ body.dark .new-chat{background:#181818;color:var(--text)}
    NEVER put firebase-service-account.json or a private key here.
    ========================================================= */
 
-import {initializeApp} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-import {getAuth,GoogleAuthProvider,signInWithPopup,signInWithEmailAndPassword,createUserWithEmailAndPassword,onAuthStateChanged,signOut}
-  from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 
-// Import the functions you need from the SDKs you need
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  signOut
+} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyBFlT-BhPIAmkYtotMGO6I-m4AaYRWex1o",
   authDomain: "village-ai-9d7d5.firebaseapp.com",
@@ -361,13 +363,15 @@ const firebaseConfig = {
   appId: "1:815788593179:web:9b4a6347206a3b7aa8a8be"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
 
-/* If frontend is served by your FastAPI backend, leave this empty. */
-const API_BASE="";
+const API_BASE = "http://127.0.0.1:8000";
 
-let auth=null,currentUser=null,currentToken=null,mode="ai",chatUser=null;
+let currentUser = null;
+let currentToken = null;
+let mode = "ai";
+let chatUser = null;
 const $=id=>document.getElementById(id);
 
 function toast(text){$("toast").textContent=text;$("toast").style.display="block";setTimeout(()=>$("toast").style.display="none",2600)}
@@ -621,22 +625,24 @@ async function changeUsername(){
   }catch(e){toast(e.message)}
 }
 
-try{
-  if(!firebaseConfig.apiKey.startsWith("YOUR_")&&!firebaseConfig.appId.startsWith("YOUR_")){
-    const app=initializeApp(firebaseConfig);auth=getAuth(app);
-    onAuthStateChanged(auth,async user=>{
-      if(user)await afterLogin(user);
-      else{
-        currentUser=null;currentToken=null;
-        $("topUserName").textContent="Login";
-        $("topAvatar").textContent="L";
-        $("accountText").textContent="You are using Village AI as a guest.";
-      }
-    });
-  }else{
-    $("loginTop").title="Add Firebase Web App config first";
+onAuthStateChanged(auth, async user => {
+  if (user) {
+    await afterLogin(user);
+  } else {
+    currentUser = null;
+    currentToken = null;
+
+    $("topUserName").textContent = "Login";
+    $("topAvatar").textContent = "L";
+    $("sideUser").textContent = "Login";
+
+    $("accountText").textContent =
+      "You are using Village AI as a guest.";
+
+    $("premiumSetting").style.display = "none";
+    $("accountActions").innerHTML = "";
   }
-}catch(e){console.error(e)}
+});
 
 $("mobileMenu").onclick=()=>toast("On mobile, use the search bar and Settings button.");
 </script>
