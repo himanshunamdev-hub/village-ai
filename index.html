@@ -366,6 +366,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
+const googleProvider = new GoogleAuthProvider();
+
 const API_BASE = "http://127.0.0.1:8000";
 
 let currentUser = null;

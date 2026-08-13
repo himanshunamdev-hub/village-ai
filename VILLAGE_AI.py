@@ -34,10 +34,17 @@ app = FastAPI(title="Village AI Backend", version="1.0.0")
 
 # For local development. In production, set ALLOWED_ORIGINS to your real domains.
 origins = [x.strip() for x in os.getenv("ALLOWED_ORIGINS", "*").split(",") if x.strip()]
+from fastapi.middleware.cors import CORSMiddleware
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins if origins != ["*"] else ["*"],
-    allow_credentials=origins != ["*"],
+    allow_origins=[
+        "http://127.0.0.1:5500",
+        "http://localhost:5500",
+        "http://127.0.0.1:8000",
+        "http://localhost:8000",
+    ],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -193,21 +200,32 @@ def get_user_by_username(username: str):
 # -----------------------------
 def current_uid(authorization: Optional[str] = Header(default=None)) -> str:
     if not firebase_initialized:
-        raise HTTPException(503, "Firebase Admin is not configured on the server.")
+        raise HTTPException(
+            503,
+            "Firebase Admin is not configured on the server."
+        )
 
     if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(401, "Login required.")
+        raise HTTPException(401, "Login token missing.")
 
     token = authorization.split(" ", 1)[1].strip()
+
     if not token:
-        raise HTTPException(401, "Invalid authentication token.")
+        raise HTTPException(401, "Empty Firebase token.")
 
     try:
         decoded = firebase_auth.verify_id_token(token)
-        return decoded["uid"]
-    except Exception:
-        raise HTTPException(401, "Invalid or expired Firebase login.")
 
+        print("FIREBASE TOKEN VERIFIED:", decoded.get("uid"))
+
+        return decoded["uid"]
+
+    except Exception as exc:
+        print("FIREBASE TOKEN VERIFY ERROR:", repr(exc))
+        raise HTTPException(
+            401,
+            "Invalid Firebase login token."
+        )
 
 # -----------------------------
 # Models
