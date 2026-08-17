@@ -34,17 +34,10 @@ app = FastAPI(title="Village AI Backend", version="1.0.0")
 
 # For local development. In production, set ALLOWED_ORIGINS to your real domains.
 origins = [x.strip() for x in os.getenv("ALLOWED_ORIGINS", "*").split(",") if x.strip()]
-from fastapi.middleware.cors import CORSMiddleware
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://127.0.0.1:5500",
-        "http://localhost:5500",
-        "http://127.0.0.1:8000",
-        "http://localhost:8000",
-    ],
-    allow_credentials=True,
+    allow_origins=origins if origins != ["*"] else ["*"],
+    allow_credentials=origins != ["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -88,6 +81,7 @@ def init_db():
             firebase_uid TEXT NOT NULL UNIQUE,
             email TEXT,
             display_name TEXT,
+            phone TEXT,
             username TEXT NOT NULL UNIQUE COLLATE NOCASE,
             photo_url TEXT,
             is_premium INTEGER NOT NULL DEFAULT 0,
@@ -127,6 +121,13 @@ def init_db():
         );
         """
     )
+    # Lightweight migration for databases created by older versions.
+    try:
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(users)").fetchall()}
+        if "phone" not in columns:
+            conn.execute("ALTER TABLE users ADD COLUMN phone TEXT")
+    except Exception as exc:
+        print("WARNING: users table migration failed:", exc)
     conn.commit()
     conn.close()
 
@@ -169,10 +170,12 @@ def user_public(row):
     if not row:
         return None
     return {
+        "id": row["id"],
         "username": row["username"],
         "display_name": row["display_name"] or row["username"],
         "photo_url": row["photo_url"],
         "email": row["email"],
+        "phone": row["phone"],
         "is_premium": bool(row["is_premium"]),
         "blue_tick": bool(row["blue_tick"]),
         "verified": bool(row["blue_tick"]),
@@ -200,32 +203,21 @@ def get_user_by_username(username: str):
 # -----------------------------
 def current_uid(authorization: Optional[str] = Header(default=None)) -> str:
     if not firebase_initialized:
-        raise HTTPException(
-            503,
-            "Firebase Admin is not configured on the server."
-        )
+        raise HTTPException(503, "Firebase Admin is not configured on the server.")
 
     if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(401, "Login token missing.")
+        raise HTTPException(401, "Login required.")
 
     token = authorization.split(" ", 1)[1].strip()
-
     if not token:
-        raise HTTPException(401, "Empty Firebase token.")
+        raise HTTPException(401, "Invalid authentication token.")
 
     try:
         decoded = firebase_auth.verify_id_token(token)
-
-        print("FIREBASE TOKEN VERIFIED:", decoded.get("uid"))
-
         return decoded["uid"]
+    except Exception:
+        raise HTTPException(401, "Invalid or expired Firebase login.")
 
-    except Exception as exc:
-        print("FIREBASE TOKEN VERIFY ERROR:", repr(exc))
-        raise HTTPException(
-            401,
-            "Invalid Firebase login token."
-        )
 
 # -----------------------------
 # Models
@@ -237,6 +229,12 @@ class AIRequest(BaseModel):
 
 class UsernameRequest(BaseModel):
     username: str = Field(min_length=3, max_length=30)
+
+
+class SyncProfileRequest(BaseModel):
+    display_name: Optional[str] = Field(default=None, max_length=100)
+    phone: Optional[str] = Field(default=None, max_length=25)
+    username: Optional[str] = Field(default=None, min_length=3, max_length=30)
 
 
 class PrivateMessageRequest(BaseModel):
@@ -264,7 +262,8 @@ def health():
 # Firebase user -> local user
 # -----------------------------
 @app.post("/api/auth/sync")
-def sync_user(uid: str = Depends(current_uid)):
+def sync_user(payload: SyncProfileRequest = None, uid: str = Depends(current_uid)):
+    payload = payload or SyncProfileRequest()
     try:
         fb_user = firebase_auth.get_user(uid)
     except Exception:
@@ -273,17 +272,35 @@ def sync_user(uid: str = Depends(current_uid)):
     existing = get_user_by_uid(uid)
     now = now_iso()
 
+    desired_username = safe_username(payload.username or "") if payload.username else None
+    desired_name = (payload.display_name or "").strip() or None
+    desired_phone = (payload.phone or "").strip() or None
+
+    if desired_username:
+        if len(desired_username) < 3:
+            raise HTTPException(400, "Username must have at least 3 letters/numbers.")
+        conn = db()
+        conflict = conn.execute(
+            "SELECT firebase_uid FROM users WHERE username=? COLLATE NOCASE AND firebase_uid<>?",
+            (desired_username, uid),
+        ).fetchone()
+        conn.close()
+        if conflict:
+            raise HTTPException(409, "This username is already taken. Please choose another one.")
+
     if existing:
         conn = db()
         conn.execute(
             """
             UPDATE users
-            SET email=?, display_name=?, photo_url=?, updated_at=?
+            SET email=?, display_name=?, phone=?, username=COALESCE(?, username), photo_url=?, updated_at=?
             WHERE firebase_uid=?
             """,
             (
                 fb_user.email or existing["email"],
-                fb_user.display_name or existing["display_name"],
+                desired_name or fb_user.display_name or existing["display_name"],
+                desired_phone or existing["phone"],
+                desired_username,
                 fb_user.photo_url or existing["photo_url"],
                 now,
                 uid,
@@ -294,27 +311,33 @@ def sync_user(uid: str = Depends(current_uid)):
         conn.close()
         return {"user": user_public(row)}
 
-    username = make_unique_username(fb_user.display_name, uid)
+    username = desired_username or make_unique_username(desired_name or fb_user.display_name, uid)
     conn = db()
-    conn.execute(
-        """
-        INSERT INTO users
-        (firebase_uid,email,display_name,username,photo_url,created_at,updated_at)
-        VALUES (?,?,?,?,?,?,?)
-        """,
-        (
-            uid,
-            fb_user.email,
-            fb_user.display_name,
-            username,
-            fb_user.photo_url,
-            now,
-            now,
-        ),
-    )
-    conn.commit()
-    row = conn.execute("SELECT * FROM users WHERE firebase_uid=?", (uid,)).fetchone()
-    conn.close()
+    try:
+        conn.execute(
+            """
+            INSERT INTO users
+            (firebase_uid,email,display_name,phone,username,photo_url,created_at,updated_at)
+            VALUES (?,?,?,?,?,?,?,?)
+            """,
+            (
+                uid,
+                fb_user.email,
+                desired_name or fb_user.display_name,
+                desired_phone,
+                username,
+                fb_user.photo_url,
+                now,
+                now,
+            ),
+        )
+        conn.commit()
+        row = conn.execute("SELECT * FROM users WHERE firebase_uid=?", (uid,)).fetchone()
+    except sqlite3.IntegrityError:
+        conn.rollback()
+        raise HTTPException(409, "This username is already taken. Please choose another one.")
+    finally:
+        conn.close()
     return {"user": user_public(row)}
 
 
@@ -351,24 +374,58 @@ def change_username(payload: UsernameRequest, uid: str = Depends(current_uid)):
 
 
 # -----------------------------
+# Username availability
+# -----------------------------
+@app.get("/api/users/check-username")
+def check_username(username: str):
+    clean = safe_username(username)
+    if len(clean) < 3:
+        return {"available": False, "username": clean, "message": "Username must be at least 3 characters."}
+
+    conn = db()
+    row = conn.execute(
+        "SELECT 1 FROM users WHERE username=? COLLATE NOCASE", (clean,)
+    ).fetchone()
+    conn.close()
+
+    if row:
+        return {"available": False, "username": clean, "message": "This username is already taken."}
+    return {"available": True, "username": clean, "message": "This username is available."}
+
+
+# -----------------------------
 # User search
 # -----------------------------
 @app.get("/api/users/search")
-def search_users(username: str, uid: str = Depends(current_uid)):
-    q = username.strip().lower()
+def search_users(q: str, uid: str = Depends(current_uid)):
+    q = q.strip().lower()
+
     if len(q) < 2:
         return {"users": []}
 
     conn = db()
+
     rows = conn.execute(
         """
-        SELECT * FROM users
+        SELECT *
+        FROM users
         WHERE lower(username) LIKE ?
-        ORDER BY username
+           OR lower(COALESCE(display_name, '')) LIKE ?
+        ORDER BY
+            CASE
+                WHEN lower(username) LIKE ? THEN 0
+                ELSE 1
+            END,
+            username
         LIMIT 20
         """,
-        (f"%{q}%",),
+        (
+            f"%{q}%",
+            f"%{q}%",
+            f"{q}%",
+        ),
     ).fetchall()
+
     conn.close()
 
     return {
@@ -378,7 +435,6 @@ def search_users(username: str, uid: str = Depends(current_uid)):
             if row["firebase_uid"] != uid
         ]
     }
-
 
 # -----------------------------
 # Private text chat

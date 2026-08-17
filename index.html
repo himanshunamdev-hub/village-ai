@@ -60,6 +60,11 @@ select,.profile-input{padding:8px 10px;border:1px solid var(--border);border-rad
 .login-input{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:10px;outline:none;margin-bottom:9px;background:#fff}
 .login-input:focus{border-color:#9ca3af}
 .email-actions{display:flex;gap:8px;margin-top:2px}.email-actions button{flex:1}
+.full-btn{width:100%;margin-top:8px}.create-switch{margin-top:9px}
+.auth-message{min-height:20px;margin:10px 0 0;font-size:12px;line-height:1.45;color:#b42318}
+.username-status{min-height:18px;margin:-4px 0 8px;font-size:12px;text-align:left}
+.username-status.available{color:#267a35}.username-status.taken{color:#b42318}.username-status.checking{color:#6b7280}
+@media(max-width:700px){.login-card{width:min(430px,94vw);padding:20px}.login-input{font-size:16px}}
 
 .mobile-drawer-btn{display:none;position:fixed;left:10px;top:72px;z-index:45;width:42px;height:42px;border:1px solid var(--border);border-radius:12px;background:#fff;color:#222;box-shadow:0 5px 18px #00000018;font-size:20px}
 .drawer-backdrop{display:none;position:fixed;inset:0;background:#0006;z-index:48}
@@ -316,22 +321,41 @@ body.dark .new-chat{background:#181818;color:var(--text)}
 <div class="login-overlay" id="loginOverlay">
   <div class="login-card">
     <button class="close" id="closeLogin">×</button>
-    <h1>🌾 Village AI</h1>
-    <p>Login to create your username and chat with other Village AI users.</p>
 
-    <button class="google-login" id="googleLogin">G&nbsp;&nbsp; Continue with Google</button>
+    <div id="loginView">
+      <h1>🌾 Village AI</h1>
+      <p>Login to your Village AI account.</p>
 
-    <div class="login-divider"><span>or</span></div>
+      <button class="google-login" id="googleLogin">G&nbsp;&nbsp; Continue with Google</button>
 
-    <input class="login-input" id="emailLogin" type="email" placeholder="Email address" autocomplete="email">
-    <input class="login-input" id="passwordLogin" type="password" placeholder="Password" autocomplete="current-password">
+      <div class="login-divider"><span>or</span></div>
 
-    <div class="email-actions">
-      <button class="primary" id="emailLoginBtn">Login with Email</button>
-      <button class="secondary" id="emailSignupBtn">Create account</button>
+      <input class="login-input" id="emailLogin" type="email" placeholder="Email address" autocomplete="email">
+      <input class="login-input" id="passwordLogin" type="password" placeholder="Password" autocomplete="current-password">
+
+      <button class="primary full-btn" id="emailLoginBtn">Login with Email</button>
+      <button class="secondary full-btn create-switch" id="openSignupBtn">Create account</button>
+
+      <p id="loginMessage" class="auth-message"></p>
     </div>
 
-    <p id="loginMessage" style="font-size:12px"></p>
+    <div id="signupView" hidden>
+      <h1>Create your account</h1>
+      <p>Enter your details to create your Village AI profile.</p>
+
+      <input class="login-input" id="signupName" type="text" placeholder="Full name" autocomplete="name">
+      <input class="login-input" id="signupPhone" type="tel" placeholder="Mobile number" autocomplete="tel" inputmode="tel">
+      <input class="login-input" id="signupUsername" type="text" placeholder="Unique username" autocomplete="username" maxlength="30">
+      <p id="usernameStatus" class="username-status"></p>
+      <input class="login-input" id="signupEmail" type="email" placeholder="Email address" autocomplete="email">
+      <input class="login-input" id="signupPassword" type="password" placeholder="Password (min 6 characters)" autocomplete="new-password">
+      <input class="login-input" id="signupPassword2" type="password" placeholder="Confirm password" autocomplete="new-password">
+
+      <button class="primary full-btn" id="createAccountBtn">Create account</button>
+      <button class="secondary full-btn create-switch" id="backToLoginBtn">← Back to login</button>
+
+      <p id="signupMessage" class="auth-message"></p>
+    </div>
   </div>
 </div>
 
@@ -523,13 +547,39 @@ const savedAccent=localStorage.getItem("village_accent");if(savedAccent)document
 async function searchUsers(q){
   if(!currentUser){$("results").innerHTML='<div class="result">🔐 Login to search Village AI users.</div>';$("results").hidden=false;return}
   try{
-    const d=await api("/api/users/search?username="+encodeURIComponent(q));
+    const d = await api(
+  "/api/users/search?q=" + encodeURIComponent(q)
+);
     $("results").innerHTML="";
     if(!d.users?.length){$("results").innerHTML='<div class="result">No users found.</div>'}
     else d.users.forEach(u=>{
       const el=document.createElement("div");el.className="result";
       const verified=!!(u.is_premium||u.verified||u.blue_tick);
-      el.innerHTML=`<div class="avatar">${u.photo_url?`<img src="${escapeHtml(u.photo_url)}">`:"👤"}</div><div><b>${escapeHtml(u.display_name||u.username)}${verified?'<span class="verified-tick">✓</span>':''}</b><div style="font-size:12px;color:#777">@${escapeHtml(u.username)}${verified?'<span class="verified-tick">✓</span>':''}</div></div>`;
+      el.innerHTML = `
+  <div class="avatar">
+    ${u.photo_url
+      ? `<img src="${escapeHtml(u.photo_url)}" alt="">`
+      : "👤"}
+  </div>
+
+  <div style="min-width:0">
+    <b>
+      @${escapeHtml(u.username)}
+      ${verified ? '<span class="verified-tick">✓</span>' : ''}
+    </b>
+
+    <div style="
+      font-size:12px;
+      color:#777;
+      margin-top:2px;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    ">
+      ${escapeHtml(u.display_name || "")}
+    </div>
+  </div>
+`;
       el.onclick=()=>openUser(u);$("results").appendChild(el);
     });
     $("results").hidden=false;
@@ -561,69 +611,253 @@ async function openUser(u){
   }catch(e){addMessage("⚠️ "+e.message)}
 }
 
-async function login(){
-  if(!auth){$("loginMessage").textContent="Firebase Web App configuration is not filled yet.";return}
+function setLoginMessage(message){
+  $("loginMessage").textContent = message || "";
+}
+
+function setSignupMessage(message){
+  $("signupMessage").textContent = message || "";
+}
+
+function showLoginView(){
+  $("loginView").hidden=false;
+  $("signupView").hidden=true;
+  setSignupMessage("");
+  setLoginMessage("");
+}
+
+function showSignupView(){
+  $("loginView").hidden=true;
+  $("signupView").hidden=false;
+  setLoginMessage("");
+  setSignupMessage("");
+  $("usernameStatus").textContent="";
+  $("usernameStatus").className="username-status";
+  $("signupName").focus();
+}
+
+function openLoginOverlay(){
+  $("loginOverlay").style.display="grid";
+  showLoginView();
+}
+
+function closeLoginOverlay(){
+  $("loginOverlay").style.display="none";
+}
+
+function normalizeUsername(value){
+  return value.trim().toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0,30);
+}
+
+let usernameCheckTimer=null;
+let usernameAvailable=false;
+
+async function checkUsernameAvailability(){
+  const input=$("signupUsername");
+  const status=$("usernameStatus");
+  const username=normalizeUsername(input.value);
+  input.value=username;
+  usernameAvailable=false;
+
+  if(username.length===0){
+    status.textContent="";
+    status.className="username-status";
+    return;
+  }
+  if(username.length<3){
+    status.textContent="Username must be at least 3 characters.";
+    status.className="username-status taken";
+    return;
+  }
+
+  status.textContent="Checking username…";
+  status.className="username-status checking";
   try{
-    $("googleLogin").disabled=true;
-    await signInWithPopup(auth,new GoogleAuthProvider());
-  }catch(e){$("loginMessage").textContent=e.message}
-  finally{$("googleLogin").disabled=false}
+    const d=await api("/api/users/check-username?username="+encodeURIComponent(username));
+    if(d.available){
+      usernameAvailable=true;
+      status.textContent="✓ This username is available.";
+      status.className="username-status available";
+    }else{
+      status.textContent="This username is already taken. Please choose another one.";
+      status.className="username-status taken";
+    }
+  }catch(e){
+    status.textContent="Could not check username right now.";
+    status.className="username-status taken";
+  }
+}
+
+$("signupUsername").addEventListener("input",()=>{
+  clearTimeout(usernameCheckTimer);
+  usernameCheckTimer=setTimeout(checkUsernameAvailability,350);
+});
+
+async function login(){
+  if(!auth){ setLoginMessage("Firebase is not ready yet."); return; }
+  const button=$("googleLogin");
+  button.disabled=true;
+  setLoginMessage("Opening Google login…");
+  try{
+    await signInWithPopup(auth,googleProvider);
+  }catch(e){
+    console.error("Google login error:",e);
+    setLoginMessage(e?.message||"Google login failed.");
+  }finally{button.disabled=false;}
 }
 
 async function emailLogin(){
-  if(!auth){$("loginMessage").textContent="Firebase Web App configuration is not filled yet.";return}
-  const email=$("emailLogin").value.trim(), password=$("passwordLogin").value;
-  if(!email || !password){$("loginMessage").textContent="Email and password are required.";return}
+  if(!auth){ setLoginMessage("Firebase is not ready yet."); return; }
+  const email=$("emailLogin").value.trim();
+  const password=$("passwordLogin").value;
+  if(!email||!password){ setLoginMessage("Enter your email and password."); return; }
+
+  const button=$("emailLoginBtn");
+  button.disabled=true;
+  setLoginMessage("Logging in…");
   try{
-    $("emailLoginBtn").disabled=true;
     await signInWithEmailAndPassword(auth,email,password);
-  }catch(e){$("loginMessage").textContent=e.message}
-  finally{$("emailLoginBtn").disabled=false}
+  }catch(e){
+    console.error("Email login error:",e);
+    setLoginMessage(e?.message||"Login failed. Check your email and password.");
+  }finally{button.disabled=false;}
 }
 
+let pendingRegistration=null;
+
 async function emailSignup(){
-  if(!auth){$("loginMessage").textContent="Firebase Web App configuration is not filled yet.";return}
-  const email=$("emailLogin").value.trim(), password=$("passwordLogin").value;
-  if(!email || !password){$("loginMessage").textContent="Email and password are required.";return}
-  if(password.length<6){$("loginMessage").textContent="Password must be at least 6 characters.";return}
+  if(!auth){ setSignupMessage("Firebase is not ready yet."); return; }
+
+  const name=$("signupName").value.trim();
+  const phone=$("signupPhone").value.trim();
+  const username=normalizeUsername($("signupUsername").value);
+  const email=$("signupEmail").value.trim();
+  const password=$("signupPassword").value;
+  const password2=$("signupPassword2").value;
+
+  if(name.length<2){ setSignupMessage("Please enter your full name."); return; }
+  if(!/^[+0-9][0-9 ()-]{6,18}$/.test(phone)){ setSignupMessage("Please enter a valid mobile number."); return; }
+  if(username.length<3){ setSignupMessage("Username must be at least 3 characters."); return; }
+  if(!usernameAvailable){
+    await checkUsernameAvailability();
+    if(!usernameAvailable){ setSignupMessage("Please choose an available username."); return; }
+  }
+  if(!email){ setSignupMessage("Please enter your email address."); return; }
+  if(password.length<6){ setSignupMessage("Password must be at least 6 characters."); return; }
+  if(password!==password2){ setSignupMessage("Passwords do not match."); return; }
+
+  const button=$("createAccountBtn");
+  button.disabled=true;
+  setSignupMessage("Creating your account…");
+
+  pendingRegistration={name,phone,username};
   try{
-    $("emailSignupBtn").disabled=true;
     await createUserWithEmailAndPassword(auth,email,password);
-  }catch(e){$("loginMessage").textContent=e.message}
-  finally{$("emailSignupBtn").disabled=false}
+  }catch(e){
+    pendingRegistration=null;
+    console.error("Create account error:",e);
+    const code=e?.code||"";
+    if(code==="auth/email-already-in-use"){
+      setSignupMessage("This email is already registered. Please use Login with Email.");
+    }else if(code==="auth/invalid-email"){
+      setSignupMessage("Please enter a valid email address.");
+    }else if(code==="auth/weak-password"){
+      setSignupMessage("Choose a stronger password (at least 6 characters).");
+    }else{
+      setSignupMessage(e?.message||"Account creation failed.");
+    }
+  }finally{button.disabled=false;}
 }
 
 $("googleLogin").onclick=login;
 $("emailLoginBtn").onclick=emailLogin;
-$("emailSignupBtn").onclick=emailSignup;
-$("loginTop").onclick=()=>currentUser?$("settingsPanel").classList.toggle("open"):$("loginOverlay").style.display="grid";
-$("profileSide").onclick=()=>currentUser?signOut(auth):$("loginOverlay").style.display="grid";
+$("createAccountBtn").onclick=emailSignup;
+$("openSignupBtn").onclick=showSignupView;
+$("backToLoginBtn").onclick=showLoginView;
+
+$("loginTop").onclick=()=>{
+  if(currentUser){
+    $("settingsPanel").classList.toggle("open");
+  }else{
+    openLoginOverlay();
+  }
+};
+
+$("profileSide").onclick=async()=>{
+  if(!currentUser){ openLoginOverlay(); return; }
+  try{
+    await signOut(auth);
+    $("settingsPanel").classList.remove("open");
+  }catch(e){
+    console.error("Logout error:",e);
+    toast(e?.message||"Logout failed.");
+  }
+};
 
 async function afterLogin(user){
-  currentUser=user;currentToken=await user.getIdToken(true);
+  currentUser=user;
   try{
-    const d=await api("/api/auth/sync",{method:"POST",body:"{}"});
+    currentToken=await user.getIdToken(true);
+  }catch(e){
+    console.error("Token error:",e);
+    toast("Could not get Firebase login token.");
+    return;
+  }
+
+  closeLoginOverlay();
+  const displayName=user.displayName||user.email||"User";
+  $("topUserName").textContent=displayName;
+  const avatar=$("topAvatar");
+  if(user.photoURL) avatar.innerHTML=`<img src="${escapeHtml(user.photoURL)}" alt="">`;
+  else avatar.textContent=displayName.charAt(0).toUpperCase();
+
+  try{
+    const payload = pendingRegistration
+      ? {
+          display_name: pendingRegistration.name,
+          phone: pendingRegistration.phone,
+          username: pendingRegistration.username
+        }
+      : {};
+
+    const d=await api("/api/auth/sync",{
+      method:"POST",
+      body:JSON.stringify(payload)
+    });
+    pendingRegistration=null;
+
     const u=d.user;
     $("sideUser").textContent="@"+u.username;
-    $("loginTop").textContent="Logout";
-    const verified = !!(u.is_premium || u.verified || u.blue_tick);
+    const verified=!!(u.is_premium||u.verified||u.blue_tick);
     $("accountText").innerHTML=`Signed in as <b>${escapeHtml(u.display_name||"User")}${verified?'<span class="verified-tick">✓</span>':''}</b><br>@${escapeHtml(u.username)}${verified?'<span class="verified-tick">✓</span>':''}<br>${escapeHtml(u.email||"")}`;
     $("premiumSetting").style.display="block";
     $("premiumApply").onclick=()=>toast("Premium application link will be added here later.");
-    $("accountActions").innerHTML=`<button class="secondary" id="changeUsername">Change username</button>`;
+    $("accountActions").innerHTML=`<button class="secondary" id="changeUsername">Change username</button> <button class="secondary" id="logoutAccount">Logout</button>`;
     $("changeUsername").onclick=changeUsername;
-    $("loginOverlay").style.display="none";
+    $("logoutAccount").onclick=async()=>{try{await signOut(auth)}catch(e){toast(e?.message||"Logout failed.")}};
     toast("Welcome to Village AI, @"+u.username);
-  }catch(e){$("loginMessage").textContent=e.message}
+  }catch(e){
+    console.error("Backend sync error:",e);
+    pendingRegistration=null;
+    // Keep Firebase login active, but show a clear sync message.
+    $("sideUser").textContent="@"+displayName.toLowerCase().replace(/[^a-z0-9_]/g,"").slice(0,30);
+    $("accountText").innerHTML=`Signed in as <b>${escapeHtml(displayName)}</b><br>${escapeHtml(user.email||"")}<br><small>Profile database sync is temporarily unavailable.</small>`;
+    $("premiumSetting").style.display="none";
+    $("accountActions").innerHTML=`<button class="secondary" id="logoutAccount">Logout</button>`;
+    $("logoutAccount").onclick=async()=>{try{await signOut(auth)}catch(err){toast(err?.message||"Logout failed.")}};
+    toast("Login successful, but profile sync needs the backend.");
+  }
 }
+
 async function changeUsername(){
   const old=$("accountText").textContent.match(/@([a-zA-Z0-9_]+)/)?.[1]||"";
   const value=prompt("Choose your username (3-30 letters, numbers or _):",old);
   if(!value)return;
   try{
     const d=await api("/api/profile/username",{method:"PUT",body:JSON.stringify({username:value})});
-    $("accountText").innerHTML=$("accountText").innerHTML.replace(/@[a-zA-Z0-9_]+/, "@"+d.username);
-    $("sideUser").textContent="@"+d.username;toast("Username updated.");
+    $("accountText").innerHTML=$("accountText").innerHTML.replace(/@[a-zA-Z0-9_]+/,"@"+d.username);
+    $("sideUser").textContent="@"+d.username;
+    toast("Username updated.");
   }catch(e){toast(e.message)}
 }
 
