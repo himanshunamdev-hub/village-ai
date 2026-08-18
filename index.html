@@ -548,7 +548,8 @@ async function searchUsers(q){
   if(!currentUser){$("results").innerHTML='<div class="result">🔐 Login to search Village AI users.</div>';$("results").hidden=false;return}
   try{
     const d = await api(
-  "/api/users/search?q=" + encodeURIComponent(q)
+  "/api/users/check-username?username=" + encodeURIComponent(username)
+);
 );
     $("results").innerHTML="";
     if(!d.users?.length){$("results").innerHTML='<div class="result">No users found.</div>'}
