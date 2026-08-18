@@ -374,6 +374,7 @@ import {
   signInWithPopup,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  updateProfile,
   onAuthStateChanged,
   signOut
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
@@ -392,8 +393,9 @@ const auth = getAuth(app);
 
 const googleProvider = new GoogleAuthProvider();
 
+// Local development backend. When the backend is deployed publicly,
+// replace this with the public API URL (for example your Render URL).
 const API_BASE = "http://127.0.0.1:8000";
-
 let currentUser = null;
 let currentToken = null;
 let mode = "ai";
@@ -553,9 +555,7 @@ async function searchUsers(q) {
   }
 
   try {
-    const d = await api(
-      "/api/users/search?username=" + encodeURIComponent(q)
-    );
+    const d = await api("/api/users/check-username?username=" + encodeURIComponent(username));
 
     $("results").innerHTML = "";
 
@@ -706,17 +706,24 @@ async function checkUsernameAvailability(){
   status.textContent="Checking username…";
   status.className="username-status checking";
   try{
-    const d=await api("/api/users/check-username?username="+encodeURIComponent(username));
-    if(d.available){
+    const d=await api(
+      "/api/users/check-username?username=" + encodeURIComponent(username)
+    );
+
+    if(d.available === true){
       usernameAvailable=true;
       status.textContent="✓ This username is available.";
       status.className="username-status available";
     }else{
-      status.textContent="This username is already taken. Please choose another one.";
+      usernameAvailable=false;
+      status.textContent =
+        d.message || "This username is already taken. Please choose another one.";
       status.className="username-status taken";
     }
   }catch(e){
-    status.textContent="Could not check username right now.";
+    console.error("Username check failed:", e);
+    usernameAvailable=false;
+    status.textContent = e?.message || "Could not check username right now.";
     status.className="username-status taken";
   }
 }
@@ -759,7 +766,10 @@ async function emailLogin(){
 let pendingRegistration=null;
 
 async function emailSignup(){
-  if(!auth){ setSignupMessage("Firebase is not ready yet."); return; }
+  if(!auth){
+    setSignupMessage("Firebase is not ready yet.");
+    return;
+  }
 
   const name=$("signupName").value.trim();
   const phone=$("signupPhone").value.trim();
@@ -768,16 +778,43 @@ async function emailSignup(){
   const password=$("signupPassword").value;
   const password2=$("signupPassword2").value;
 
-  if(name.length<2){ setSignupMessage("Please enter your full name."); return; }
-  if(!/^[+0-9][0-9 ()-]{6,18}$/.test(phone)){ setSignupMessage("Please enter a valid mobile number."); return; }
-  if(username.length<3){ setSignupMessage("Username must be at least 3 characters."); return; }
+  if(name.length<2){
+    setSignupMessage("Please enter your full name.");
+    return;
+  }
+
+  if(!/^[+0-9][0-9 ()-]{6,18}$/.test(phone)){
+    setSignupMessage("Please enter a valid mobile number.");
+    return;
+  }
+
+  if(username.length<3){
+    setSignupMessage("Username must be at least 3 characters.");
+    return;
+  }
+
   if(!usernameAvailable){
     await checkUsernameAvailability();
-    if(!usernameAvailable){ setSignupMessage("Please choose an available username."); return; }
+    if(!usernameAvailable){
+      setSignupMessage("Please choose an available username.");
+      return;
+    }
   }
-  if(!email){ setSignupMessage("Please enter your email address."); return; }
-  if(password.length<6){ setSignupMessage("Password must be at least 6 characters."); return; }
-  if(password!==password2){ setSignupMessage("Passwords do not match."); return; }
+
+  if(!email){
+    setSignupMessage("Please enter your email address.");
+    return;
+  }
+
+  if(password.length<6){
+    setSignupMessage("Choose a password with at least 6 characters.");
+    return;
+  }
+
+  if(password!==password2){
+    setSignupMessage("Passwords do not match.");
+    return;
+  }
 
   const button=$("createAccountBtn");
   button.disabled=true;
@@ -785,10 +822,21 @@ async function emailSignup(){
 
   pendingRegistration={name,phone,username};
   try{
-    await createUserWithEmailAndPassword(auth,email,password);
+    const credential=await createUserWithEmailAndPassword(auth,email,password);
+
+    // Store the name in Firebase profile too, so the name is not lost
+    // even when the backend is temporarily unavailable.
+    try{
+      await updateProfile(credential.user,{displayName:name});
+    }catch(profileError){
+      console.warn("Firebase profile update failed:",profileError);
+    }
+
+    setSignupMessage("");
   }catch(e){
     pendingRegistration=null;
     console.error("Create account error:",e);
+
     const code=e?.code||"";
     if(code==="auth/email-already-in-use"){
       setSignupMessage("This email is already registered. Please use Login with Email.");
@@ -799,7 +847,9 @@ async function emailSignup(){
     }else{
       setSignupMessage(e?.message||"Account creation failed.");
     }
-  }finally{button.disabled=false;}
+  }finally{
+    button.disabled=false;
+  }
 }
 
 $("googleLogin").onclick=login;
@@ -829,6 +879,7 @@ $("profileSide").onclick=async()=>{
 
 async function afterLogin(user){
   currentUser=user;
+
   try{
     currentToken=await user.getIdToken(true);
   }catch(e){
@@ -838,12 +889,19 @@ async function afterLogin(user){
   }
 
   closeLoginOverlay();
-  const displayName=user.displayName||user.email||"User";
-  $("topUserName").textContent=displayName;
-  const avatar=$("topAvatar");
-  if(user.photoURL) avatar.innerHTML=`<img src="${escapeHtml(user.photoURL)}" alt="">`;
-  else avatar.textContent=displayName.charAt(0).toUpperCase();
 
+  const displayName=user.displayName || user.email || "User";
+  $("topUserName").textContent=displayName;
+
+  const avatar=$("topAvatar");
+  if(user.photoURL){
+    avatar.innerHTML=`<img src="${escapeHtml(user.photoURL)}" alt="">`;
+  }else{
+    avatar.textContent=displayName.charAt(0).toUpperCase();
+  }
+
+  // Firebase login itself is successful now.
+  // Backend sync is optional and runs afterward.
   try{
     const payload = pendingRegistration
       ? {
@@ -857,28 +915,63 @@ async function afterLogin(user){
       method:"POST",
       body:JSON.stringify(payload)
     });
+
     pendingRegistration=null;
 
     const u=d.user;
     $("sideUser").textContent="@"+u.username;
+
     const verified=!!(u.is_premium||u.verified||u.blue_tick);
-    $("accountText").innerHTML=`Signed in as <b>${escapeHtml(u.display_name||"User")}${verified?'<span class="verified-tick">✓</span>':''}</b><br>@${escapeHtml(u.username)}${verified?'<span class="verified-tick">✓</span>':''}<br>${escapeHtml(u.email||"")}`;
+
+    $("accountText").innerHTML=
+      `Signed in as <b>${escapeHtml(u.display_name||displayName)}${verified?'<span class="verified-tick">✓</span>':''}</b>`+
+      `<br>@${escapeHtml(u.username)}${verified?'<span class="verified-tick">✓</span>':''}`+
+      `<br>${escapeHtml(u.email||user.email||"")}`;
+
     $("premiumSetting").style.display="block";
     $("premiumApply").onclick=()=>toast("Premium application link will be added here later.");
-    $("accountActions").innerHTML=`<button class="secondary" id="changeUsername">Change username</button> <button class="secondary" id="logoutAccount">Logout</button>`;
+
+    $("accountActions").innerHTML=
+      `<button class="secondary" id="changeUsername">Change username</button> `+
+      `<button class="secondary" id="logoutAccount">Logout</button>`;
+
     $("changeUsername").onclick=changeUsername;
-    $("logoutAccount").onclick=async()=>{try{await signOut(auth)}catch(e){toast(e?.message||"Logout failed.")}};
+    $("logoutAccount").onclick=async()=>{
+      try{ await signOut(auth); }
+      catch(e){ toast(e?.message||"Logout failed."); }
+    };
+
     toast("Welcome to Village AI, @"+u.username);
+
   }catch(e){
     console.error("Backend sync error:",e);
-    pendingRegistration=null;
-    // Keep Firebase login active, but show a clear sync message.
-    $("sideUser").textContent="@"+displayName.toLowerCase().replace(/[^a-z0-9_]/g,"").slice(0,30);
-    $("accountText").innerHTML=`Signed in as <b>${escapeHtml(displayName)}</b><br>${escapeHtml(user.email||"")}<br><small>Profile database sync is temporarily unavailable.</small>`;
+
+    // Keep Firebase login working even if the backend is unavailable.
+    // This is important for the public GitHub Pages frontend.
+    const localName=(pendingRegistration?.name || displayName);
+    const localUsername=(
+      pendingRegistration?.username ||
+      displayName.toLowerCase().replace(/[^a-z0-9_]/g,"").slice(0,30) ||
+      "user"
+    );
+
+    $("sideUser").textContent="@"+localUsername;
+    $("accountText").innerHTML=
+      `Signed in as <b>${escapeHtml(localName)}</b>`+
+      `<br>@${escapeHtml(localUsername)}`+
+      `<br>${escapeHtml(user.email||"")}`+
+      `<br><small>Database sync is unavailable right now.</small>`;
+
     $("premiumSetting").style.display="none";
-    $("accountActions").innerHTML=`<button class="secondary" id="logoutAccount">Logout</button>`;
-    $("logoutAccount").onclick=async()=>{try{await signOut(auth)}catch(err){toast(err?.message||"Logout failed.")}};
-    toast("Login successful, but profile sync needs the backend.");
+    $("accountActions").innerHTML=
+      `<button class="secondary" id="logoutAccount">Logout</button>`;
+
+    $("logoutAccount").onclick=async()=>{
+      try{ await signOut(auth); }
+      catch(err){ toast(err?.message||"Logout failed."); }
+    };
+
+    toast("Login successful.");
   }
 }
 
@@ -900,6 +993,7 @@ onAuthStateChanged(auth, async user => {
   } else {
     currentUser = null;
     currentToken = null;
+    pendingRegistration = null;
 
     $("topUserName").textContent = "Login";
     $("topAvatar").textContent = "L";

@@ -33,11 +33,25 @@ ALLOWED_VIDEO = {"video/mp4", "video/webm", "video/quicktime"}
 app = FastAPI(title="Village AI Backend", version="1.0.0")
 
 # For local development. In production, set ALLOWED_ORIGINS to your real domains.
-origins = [x.strip() for x in os.getenv("ALLOWED_ORIGINS", "*").split(",") if x.strip()]
+default_origins = [
+    "http://127.0.0.1:5500",
+    "http://localhost:5500",
+    "http://127.0.0.1:8000",
+    "http://localhost:8000",
+    "https://himanshunamdev-hub.github.io",
+]
+configured_origins = os.getenv("ALLOWED_ORIGINS", "").strip()
+origins = [
+    x.strip()
+    for x in (configured_origins.split(",") if configured_origins else default_origins)
+    if x.strip()
+]
+allow_all_origins = "*" in origins
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins if origins != ["*"] else ["*"],
-    allow_credentials=origins != ["*"],
+    allow_origins=["*"] if allow_all_origins else origins,
+    allow_credentials=False if allow_all_origins else True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -175,7 +189,6 @@ def user_public(row):
         "display_name": row["display_name"] or row["username"],
         "photo_url": row["photo_url"],
         "email": row["email"],
-        "phone": row["phone"],
         "is_premium": bool(row["is_premium"]),
         "blue_tick": bool(row["blue_tick"]),
         "verified": bool(row["blue_tick"]),
@@ -735,4 +748,4 @@ def set_blue_tick(
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app:app", host="0.0.0.0", port=int(os.getenv("PORT", "8000")), reload=True)
+    uvicorn.run("VILLAGE_AI:app", host="0.0.0.0", port=int(os.getenv("PORT", "8000")), reload=True)
