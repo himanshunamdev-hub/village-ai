@@ -544,47 +544,79 @@ document.querySelectorAll(".theme").forEach(b=>b.onclick=()=>{
 });
 const savedAccent=localStorage.getItem("village_accent");if(savedAccent)document.documentElement.style.setProperty("--accent",savedAccent);
 
-async function searchUsers(q){
-  if(!currentUser){$("results").innerHTML='<div class="result">🔐 Login to search Village AI users.</div>';$("results").hidden=false;return}
-  try{
+async function searchUsers(q) {
+  if (!currentUser) {
+    $("results").innerHTML =
+      '<div class="result">🔐 Login to search Village AI users.</div>';
+    $("results").hidden = false;
+    return;
+  }
+
+  try {
     const d = await api(
-  "/api/users/check-username?username=" + encodeURIComponent(username)
-);
-);
-    $("results").innerHTML="";
-    if(!d.users?.length){$("results").innerHTML='<div class="result">No users found.</div>'}
-    else d.users.forEach(u=>{
-      const el=document.createElement("div");el.className="result";
-      const verified=!!(u.is_premium||u.verified||u.blue_tick);
-      el.innerHTML = `
-  <div class="avatar">
-    ${u.photo_url
-      ? `<img src="${escapeHtml(u.photo_url)}" alt="">`
-      : "👤"}
-  </div>
+      "/api/users/search?username=" + encodeURIComponent(q)
+    );
 
-  <div style="min-width:0">
-    <b>
-      @${escapeHtml(u.username)}
-      ${verified ? '<span class="verified-tick">✓</span>' : ''}
-    </b>
+    $("results").innerHTML = "";
 
-    <div style="
-      font-size:12px;
-      color:#777;
-      margin-top:2px;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      white-space:nowrap;
-    ">
-      ${escapeHtml(u.display_name || "")}
-    </div>
-  </div>
-`;
-      el.onclick=()=>openUser(u);$("results").appendChild(el);
-    });
-    $("results").hidden=false;
-  }catch(e){$("results").innerHTML=`<div class="result">⚠️ ${escapeHtml(e.message)}</div>`;$("results").hidden=false}
+    if (!d.users || !d.users.length) {
+      $("results").innerHTML =
+        '<div class="result">No users found.</div>';
+    } else {
+      d.users.forEach(u => {
+        const el = document.createElement("div");
+        el.className = "result";
+
+        const verified = !!(
+          u.is_premium ||
+          u.verified ||
+          u.blue_tick
+        );
+
+        el.innerHTML = `
+          <div class="avatar">
+            ${
+              u.photo_url
+                ? `<img src="${escapeHtml(u.photo_url)}" alt="">`
+                : "👤"
+            }
+          </div>
+
+          <div style="min-width:0">
+            <b>
+              @${escapeHtml(u.username)}
+              ${
+                verified
+                  ? '<span class="verified-tick">✓</span>'
+                  : ""
+              }
+            </b>
+
+            <div style="
+              font-size:12px;
+              color:#777;
+              margin-top:2px;
+              overflow:hidden;
+              text-overflow:ellipsis;
+              white-space:nowrap;
+            ">
+              ${escapeHtml(u.display_name || "")}
+            </div>
+          </div>
+        `;
+
+        el.onclick = () => openUser(u);
+        $("results").appendChild(el);
+      });
+    }
+
+    $("results").hidden = false;
+  } catch (e) {
+    console.error("User search error:", e);
+    $("results").innerHTML =
+      `<div class="result">⚠️ ${escapeHtml(e.message)}</div>`;
+    $("results").hidden = false;
+  }
 }
 let searchTimer;
 $("search").addEventListener("input",()=>{
