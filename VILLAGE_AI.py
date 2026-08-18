@@ -376,22 +376,46 @@ def change_username(payload: UsernameRequest, uid: str = Depends(current_uid)):
 # -----------------------------
 # Username availability
 # -----------------------------
+# -----------------------------
+# Username availability check
+# -----------------------------
 @app.get("/api/users/check-username")
 def check_username(username: str):
-    clean = safe_username(username)
-    if len(clean) < 3:
-        return {"available": False, "username": clean, "message": "Username must be at least 3 characters."}
+    username = safe_username(username)
+
+    if len(username) < 3:
+        return {
+            "available": False,
+            "username": username,
+            "message": "Username must have at least 3 letters or numbers."
+        }
 
     conn = db()
-    row = conn.execute(
-        "SELECT 1 FROM users WHERE username=? COLLATE NOCASE", (clean,)
+
+    exists = conn.execute(
+        """
+        SELECT 1
+        FROM users
+        WHERE username = ? COLLATE NOCASE
+        LIMIT 1
+        """,
+        (username,),
     ).fetchone()
+
     conn.close()
 
-    if row:
-        return {"available": False, "username": clean, "message": "This username is already taken."}
-    return {"available": True, "username": clean, "message": "This username is available."}
+    if exists:
+        return {
+            "available": False,
+            "username": username,
+            "message": "This username is already taken. Please choose another one."
+        }
 
+    return {
+        "available": True,
+        "username": username,
+        "message": "✓ This username is available."
+    }
 
 # -----------------------------
 # User search
