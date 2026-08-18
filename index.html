@@ -213,7 +213,7 @@ body.dark .new-chat{background:#181818;color:var(--text)}
       <div class="top-title">🌾 Village AI</div>
       <div class="search-wrap">
         <span class="search-icon">🔎</span>
-        <input id="search" class="search" placeholder="Search users by username or name..." autocomplete="off">
+        <input id="search" class="search" placeholder="Search users by username..." autocomplete="off">
         <div id="results" class="search-results" hidden></div>
       </div>
       <button class="profile-top" id="loginTop" aria-label="Login or profile"><span class="top-avatar" id="topAvatar">L</span><span class="top-user-name" id="topUserName">Login</span></button>
@@ -374,7 +374,6 @@ import {
   signInWithPopup,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  deleteUser,
   onAuthStateChanged,
   signOut
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
@@ -384,8 +383,8 @@ import {
   ref,
   get,
   set,
-  update,
-  remove
+  remove,
+  runTransaction
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
 const firebaseConfig = {
@@ -394,16 +393,16 @@ const firebaseConfig = {
   projectId: "village-ai-9d7d5",
   storageBucket: "village-ai-9d7d5.firebasestorage.app",
   messagingSenderId: "815788593179",
-  appId: "1:815788593179:web:9b4a6347206a3b7aa8a8be"
+  appId: "1:815788593179:web:9b4a6347206a3b7aa8a8be",
+  databaseURL: "https://village-ai-9d7d5-default-rtdb.asia-southeast1.firebasedatabase.app"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getDatabase(app); // Realtime Database must belong to the same Firebase project as this firebaseConfig.
+const db = getDatabase(app);
 
 const googleProvider = new GoogleAuthProvider();
 
-// FastAPI is still used for AI/chat/media. Login, profiles and username search use Firebase Realtime Database.
 const API_BASE = "http://127.0.0.1:8000";
 let currentUser = null;
 let currentToken = null;
@@ -557,36 +556,30 @@ const savedAccent=localStorage.getItem("village_accent");if(savedAccent)document
 
 async function searchUsers(q) {
   if (!currentUser) {
-    $("results").innerHTML = '<div class="result">🔐 Login to search Village AI users.</div>';
+    $("results").innerHTML =
+      '<div class="result">🔐 Login to search Village AI users.</div>';
     $("results").hidden = false;
     return;
   }
 
   try {
-    const snapshot = await get(ref(db, "publicProfiles"));
-    const data = snapshot.exists() ? snapshot.val() : {};
+    const snap = await get(ref(db, "publicProfiles"));
+    const all = snap.exists() ? snap.val() : {};
     const needle = q.trim().toLowerCase();
 
-    const users = Object.values(data || {})
-      .filter(u => {
-        const username = String(u.username || "").toLowerCase();
-        const name = String(u.name || "").toLowerCase();
-        return username.includes(needle) || name.includes(needle);
-      })
-      .filter(u => u.uid !== currentUser.uid)
-      .sort((a, b) => {
-        const au = String(a.username || "").toLowerCase();
-        const bu = String(b.username || "").toLowerCase();
-        const ap = au.startsWith(needle) ? 0 : 1;
-        const bp = bu.startsWith(needle) ? 0 : 1;
-        return ap - bp || au.localeCompare(bu);
-      })
+    const users = Object.values(all || {})
+      .filter(u => u && u.uid !== currentUser.uid)
+      .filter(u =>
+        String(u.username || "").toLowerCase().includes(needle) ||
+        String(u.name || "").toLowerCase().includes(needle)
+      )
       .slice(0, 20);
 
     $("results").innerHTML = "";
 
     if (!users.length) {
-      $("results").innerHTML = '<div class="result">No users found.</div>';
+      $("results").innerHTML =
+        '<div class="result">No users found.</div>';
     } else {
       users.forEach(u => {
         const el = document.createElement("div");
@@ -596,32 +589,54 @@ async function searchUsers(q) {
 
         el.innerHTML = `
           <div class="avatar">
-            ${u.photoURL ? `<img src="${escapeHtml(u.photoURL)}" alt="">` : "👤"}
+            ${
+              u.photoURL
+                ? `<img src="${escapeHtml(u.photoURL)}" alt="">`
+                : "👤"
+            }
           </div>
+
           <div style="min-width:0">
             <b>
-              @${escapeHtml(u.username || "user")}
+              @${escapeHtml(u.username || "")}
               ${verified ? '<span class="verified-tick">✓</span>' : ""}
             </b>
-            <div style="font-size:12px;color:#777;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+
+            <div style="
+              font-size:12px;
+              color:#777;
+              margin-top:2px;
+              overflow:hidden;
+              text-overflow:ellipsis;
+              white-space:nowrap;
+            ">
               ${escapeHtml(u.name || "")}
             </div>
           </div>
         `;
 
-        el.onclick = () => openUser(u);
+        el.onclick = () => openUser({
+          username: u.username,
+          display_name: u.name,
+          photo_url: u.photoURL || "",
+          is_premium: !!u.is_premium,
+          verified: !!u.verified,
+          blue_tick: !!u.blue_tick,
+          uid: u.uid
+        });
+
         $("results").appendChild(el);
       });
     }
 
     $("results").hidden = false;
   } catch (e) {
-    console.error("Realtime Database user search error:", e);
-    $("results").innerHTML = `<div class="result">⚠️ ${escapeHtml(e.message || "Could not search users.")}</div>`;
+    console.error("User search error:", e);
+    $("results").innerHTML =
+      `<div class="result">⚠️ ${escapeHtml(e?.message || "Could not search users.")}</div>`;
     $("results").hidden = false;
   }
 }
-
 let searchTimer;
 $("search").addEventListener("input",()=>{
   clearTimeout(searchTimer);const q=$("search").value.trim();
@@ -633,7 +648,7 @@ async function openUser(u){
   if(!currentUser){toast("Please login first.");return}
   clearMedia();mode="user";chatUser=u;$("results").hidden=true;$("search").value="";
   $("input").placeholder="Message @"+u.username+"...";
-  $("messagesInner").innerHTML=`<div class="user-head"><button class="back" id="back">←</button><div class="avatar">${(u.photoURL || u.photo_url)?`<img src="${escapeHtml(u.photoURL || u.photo_url)}">`:"👤"}</div><div><b>${escapeHtml(u.display_name||u.username)}${(u.is_premium||u.verified||u.blue_tick)?'<span class="verified-tick">✓</span>':''}</b><div style="font-size:12px;color:#777">@${escapeHtml(u.username)}${(u.is_premium||u.verified||u.blue_tick)?'<span class="verified-tick">✓</span>':''}</div></div></div><div id="privateMessages"></div>`;
+  $("messagesInner").innerHTML=`<div class="user-head"><button class="back" id="back">←</button><div class="avatar">${u.photo_url?`<img src="${escapeHtml(u.photo_url)}">`:"👤"}</div><div><b>${escapeHtml(u.display_name||u.username)}${(u.is_premium||u.verified||u.blue_tick)?'<span class="verified-tick">✓</span>':''}</b><div style="font-size:12px;color:#777">@${escapeHtml(u.username)}${(u.is_premium||u.verified||u.blue_tick)?'<span class="verified-tick">✓</span>':''}</div></div></div><div id="privateMessages"></div>`;
   $("back").onclick=newChat;
   try{
     const d=await api("/api/users/"+encodeURIComponent(u.username)+"/messages");
@@ -690,112 +705,50 @@ let usernameCheckTimer=null;
 let usernameAvailable=false;
 
 async function checkUsernameAvailability(){
-  const input = $("signupUsername");
-  const status = $("usernameStatus");
-  const username = normalizeUsername(input.value);
+  const input=$("signupUsername");
+  const status=$("usernameStatus");
+  const username=normalizeUsername(input.value);
 
-  input.value = username;
-  usernameAvailable = false;
+  input.value=username;
+  usernameAvailable=false;
 
-  if (username.length === 0) {
-    status.textContent = "";
-    status.className = "username-status";
+  if(username.length===0){
+    status.textContent="";
+    status.className="username-status";
     return;
   }
 
-  if (username.length < 3) {
-    status.textContent = "Username must be at least 3 characters.";
-    status.className = "username-status taken";
+  if(username.length<3){
+    status.textContent="Username must be at least 3 characters.";
+    status.className="username-status taken";
     return;
   }
 
-  status.textContent = "Checking username…";
-  status.className = "username-status checking";
+  status.textContent="Checking username…";
+  status.className="username-status checking";
 
-  try {
-    const snapshot = await get(ref(db, "usernames/" + username));
+  try{
+    const snapshot=await get(ref(db, "usernames/" + username));
 
-    if (snapshot.exists()) {
-      status.textContent = "This username is already taken. Please choose another one.";
-      status.className = "username-status taken";
-      usernameAvailable = false;
-    } else {
-      status.textContent = "✓ This username is available.";
-      status.className = "username-status available";
-      usernameAvailable = true;
+    if(snapshot.exists()){
+      status.textContent="This username is already taken. Please choose another one.";
+      status.className="username-status taken";
+      usernameAvailable=false;
+    }else{
+      status.textContent="✓ This username is available.";
+      status.className="username-status available";
+      usernameAvailable=true;
     }
-  } catch (e) {
-    console.error("Username availability error:", e);
-    status.textContent = "Could not check username right now.";
-    status.className = "username-status taken";
-    usernameAvailable = false;
+  }catch(e){
+    console.error("Username availability error:",e);
+    status.textContent="Could not check username right now.";
+    status.className="username-status taken";
   }
 }
-
 $("signupUsername").addEventListener("input",()=>{
   clearTimeout(usernameCheckTimer);
   usernameCheckTimer=setTimeout(checkUsernameAvailability,350);
 });
-
-async function loadProfileFromDatabase(uid) {
-  const snapshot = await get(ref(db, "profiles/" + uid));
-  return snapshot.exists() ? snapshot.val() : null;
-}
-
-async function createUniqueUsername(base) {
-  let clean = normalizeUsername(base) || "user";
-  if (clean.length < 3) clean = "user";
-  clean = clean.slice(0, 24);
-
-  for (let i = 0; i < 100; i++) {
-    const candidate = i === 0 ? clean : `${clean}${i}`.slice(0, 30);
-    const snapshot = await get(ref(db, "usernames/" + candidate));
-    if (!snapshot.exists()) return candidate;
-  }
-
-  return "user" + Date.now().toString().slice(-8);
-}
-
-async function saveProfileToDatabase(user, profile) {
-  const uid = user.uid;
-  const username = normalizeUsername(profile.username || "");
-
-  if (username.length < 3) {
-    throw new Error("Username must be at least 3 characters.");
-  }
-
-  const usernameRef = ref(db, "usernames/" + username);
-  const usernameSnapshot = await get(usernameRef);
-
-  if (usernameSnapshot.exists() && usernameSnapshot.val() !== uid) {
-    throw new Error("This username is already taken. Please choose another one.");
-  }
-
-  const record = {
-    uid,
-    name: profile.name || user.displayName || "User",
-    phone: profile.phone || "",
-    username,
-    email: user.email || "",
-    photoURL: user.photoURL || "",
-    createdAt: profile.createdAt || Date.now(),
-    updatedAt: Date.now()
-  };
-
-  await set(ref(db, "profiles/" + uid), record);
-  await set(ref(db, "publicProfiles/" + uid), {
-    uid,
-    name: record.name,
-    username: record.username,
-    email: record.email,
-    photoURL: record.photoURL,
-    updatedAt: record.updatedAt
-  });
-  await set(usernameRef, true);
-
-  localStorage.setItem("village_profile", JSON.stringify(record));
-  return record;
-}
 
 async function login(){
   if(!auth){ setLoginMessage("Firebase is not ready yet."); return; }
@@ -898,162 +851,211 @@ $("profileSide").onclick=async()=>{
   }
 };
 
+async function claimUsername(username, uid){
+  const usernameRef=ref(db, "usernames/" + username);
+
+  const result=await runTransaction(usernameRef, currentValue => {
+    if(currentValue === null || currentValue === uid){
+      return uid;
+    }
+    return;
+  });
+
+  if(!result.committed){
+    throw new Error("This username is already taken. Please choose another one.");
+  }
+
+  return true;
+}
+
+async function saveUserProfile(user, registration){
+  const name=(registration?.name || user.displayName || user.email || "User").trim();
+  const phone=(registration?.phone || "").trim();
+  let username=normalizeUsername(registration?.username || "");
+
+  if(username.length<3){
+    const base=normalizeUsername(name) || "user";
+    username=base.slice(0,30);
+  }
+
+  // Atomically reserve the username.
+  await claimUsername(username, user.uid);
+
+  const profile={
+    uid:user.uid,
+    name:name,
+    phone:phone,
+    username:username,
+    email:user.email || "",
+    photoURL:user.photoURL || "",
+    createdAt:Date.now()
+  };
+
+  await set(ref(db, "profiles/" + user.uid), profile);
+
+  await set(ref(db, "publicProfiles/" + user.uid), {
+    uid:user.uid,
+    name:name,
+    username:username,
+    email:user.email || "",
+    photoURL:user.photoURL || "",
+    is_premium:false,
+    blue_tick:false,
+    verified:false
+  });
+
+  return profile;
+}
+
+async function loadUserProfile(user){
+  const snap=await get(ref(db, "profiles/" + user.uid));
+  return snap.exists() ? snap.val() : null;
+}
+
 async function afterLogin(user){
-  currentUser = user;
-
-  try {
-    currentToken = await user.getIdToken(true);
-  } catch (e) {
-    console.error("Token error:", e);
-    toast("Could not get Firebase login token.");
-    return;
-  }
-
-  let profile = null;
-
-  try {
-    profile = await loadProfileFromDatabase(user.uid);
-
-    if (!profile && pendingRegistration) {
-      profile = await saveProfileToDatabase(user, {
-        ...pendingRegistration,
-        createdAt: Date.now()
-      });
-      pendingRegistration = null;
-    }
-
-    if (!profile) {
-      const stored = localStorage.getItem("village_profile");
-      profile = stored ? JSON.parse(stored) : null;
-    }
-
-    // First-time Google/other Firebase login without a stored profile.
-    if (!profile) {
-      const base = user.displayName || (user.email || "user").split("@")[0];
-      const username = await createUniqueUsername(base);
-      profile = await saveProfileToDatabase(user, {
-        name: user.displayName || user.email || "User",
-        phone: "",
-        username,
-        createdAt: Date.now()
-      });
-    }
-  } catch (e) {
-    console.error("Realtime Database profile error:", e);
-
-    // If this was a brand-new signup and the username became unavailable,
-    // remove the Firebase account so the user can choose another username.
-    if (pendingRegistration) {
-      try { await deleteUser(user); } catch (deleteError) {
-        console.error("Could not roll back Firebase signup:", deleteError);
-      }
-      setSignupMessage(e?.message || "Could not create your profile.");
-      openLoginOverlay();
-      showSignupView();
-    } else {
-      toast(e?.message || "Could not load your profile.");
-    }
-
-    pendingRegistration = null;
-    return;
-  }
+  currentUser=user;
+  currentToken=null;
 
   closeLoginOverlay();
 
-  const displayName = profile.name || user.displayName || user.email || "User";
-  const username = profile.username || "user";
+  try{
+    let profile=await loadUserProfile(user);
 
-  $("topUserName").textContent = displayName;
-
-  const avatar = $("topAvatar");
-  if (profile.photoURL || user.photoURL) {
-    avatar.innerHTML = `<img src="${escapeHtml(profile.photoURL || user.photoURL)}" alt="">`;
-  } else {
-    avatar.textContent = displayName.charAt(0).toUpperCase();
-  }
-
-  $("sideUser").textContent = "@" + username;
-  $("accountText").innerHTML =
-    `Signed in as <b>${escapeHtml(displayName)}</b>` +
-    `<br>@${escapeHtml(username)}` +
-    `<br>${escapeHtml(profile.email || user.email || "")}`;
-
-  $("premiumSetting").style.display = "none";
-  $("accountActions").innerHTML =
-    `<button class="secondary" id="logoutAccount">Logout</button>`;
-
-  $("logoutAccount").onclick = async () => {
-    try {
-      await signOut(auth);
-    } catch (e) {
-      toast(e?.message || "Logout failed.");
+    if(!profile){
+      const registration=pendingRegistration;
+      profile=await saveUserProfile(user, registration);
     }
-  };
 
-  pendingRegistration = null;
-  toast("Welcome to Village AI, @" + username);
+    pendingRegistration=null;
+
+    const displayName=profile.name || user.displayName || user.email || "User";
+
+    $("topUserName").textContent=displayName;
+
+    const avatar=$("topAvatar");
+    if(user.photoURL){
+      avatar.innerHTML=`<img src="${escapeHtml(user.photoURL)}" alt="">`;
+    }else if(profile.photoURL){
+      avatar.innerHTML=`<img src="${escapeHtml(profile.photoURL)}" alt="">`;
+    }else{
+      avatar.textContent=displayName.charAt(0).toUpperCase();
+    }
+
+    $("sideUser").textContent="@"+profile.username;
+
+    $("accountText").innerHTML=
+      `Signed in as <b>${escapeHtml(profile.name)}</b>`+
+      `<br>@${escapeHtml(profile.username)}`+
+      `<br>${escapeHtml(profile.email||"")}`;
+
+    $("premiumSetting").style.display="none";
+
+    $("accountActions").innerHTML=
+      `<button class="secondary" id="logoutAccount">Logout</button>`;
+
+    $("logoutAccount").onclick=async()=>{
+      try{
+        await signOut(auth);
+      }catch(e){
+        toast(e?.message || "Logout failed.");
+      }
+    };
+
+    toast("Welcome to Village AI, @"+profile.username);
+  }catch(e){
+    console.error("Realtime Database profile error:", e);
+    pendingRegistration=null;
+
+    // Firebase auth succeeded even if the profile write failed.
+    const displayName=user.displayName || user.email || "User";
+    $("topUserName").textContent=displayName;
+    $("topAvatar").textContent=displayName.charAt(0).toUpperCase();
+    $("sideUser").textContent="@" + normalizeUsername(displayName || "user");
+
+    $("accountText").innerHTML=
+      `Signed in as <b>${escapeHtml(displayName)}</b>`+
+      `<br>${escapeHtml(user.email||"")}`+
+      `<br><small>Login is active, but profile setup failed: ${escapeHtml(e?.message || "Database permission error.")}</small>`;
+
+    $("accountActions").innerHTML=
+      `<button class="secondary" id="logoutAccount">Logout</button>`;
+
+    $("logoutAccount").onclick=async()=>{
+      try{ await signOut(auth); }catch(err){ toast(err?.message || "Logout failed."); }
+    };
+
+    toast(e?.message || "Profile setup failed.");
+  }
 }
 
 async function changeUsername(){
-  if (!currentUser) {
+  if(!currentUser){
     toast("Please login first.");
     return;
   }
 
-  const current = await loadProfileFromDatabase(currentUser.uid);
-  const oldUsername = current?.username || "";
-  const value = prompt(
+  const snap=await get(ref(db, "profiles/" + currentUser.uid));
+  const current=snap.exists() ? snap.val() : null;
+  const old=current?.username || "";
+
+  const value=prompt(
     "Choose your username (3-30 letters, numbers or _):",
-    oldUsername
+    old
   );
 
-  if (!value) return;
+  if(!value)return;
 
-  const username = normalizeUsername(value);
-  if (username.length < 3) {
+  const username=normalizeUsername(value);
+
+  if(username.length<3){
     toast("Username must have at least 3 letters/numbers.");
     return;
   }
 
-  try {
-    const newRef = ref(db, "usernames/" + username);
-    const existing = await get(newRef);
+  if(username===old){
+    return;
+  }
 
-    if (existing.exists() && existing.val() !== currentUser.uid) {
-      toast("This username is already taken.");
-      return;
-    }
+  try{
+    await claimUsername(username, currentUser.uid);
 
-    const updated = {
-      ...current,
-      uid: currentUser.uid,
-      username,
-      updatedAt: Date.now()
+    const profile={
+      ...(current || {}),
+      uid:currentUser.uid,
+      name:current?.name || currentUser.displayName || currentUser.email || "User",
+      phone:current?.phone || "",
+      username:username,
+      email:currentUser.email || current?.email || "",
+      photoURL:currentUser.photoURL || current?.photoURL || "",
+      createdAt:current?.createdAt || Date.now()
     };
 
-    await set(ref(db, "profiles/" + currentUser.uid), updated);
-    await update(ref(db, "publicProfiles/" + currentUser.uid), {
-      username,
-      updatedAt: updated.updatedAt
+    await set(ref(db, "profiles/" + currentUser.uid), profile);
+    await set(ref(db, "publicProfiles/" + currentUser.uid), {
+      uid:currentUser.uid,
+      name:profile.name,
+      username:username,
+      email:profile.email,
+      photoURL:profile.photoURL,
+      is_premium:false,
+      blue_tick:false,
+      verified:false
     });
-    await set(newRef, true);
 
-    if (oldUsername && oldUsername !== username) {
-      await remove(ref(db, "usernames/" + oldUsername));
+    if(old){
+      await remove(ref(db, "usernames/" + old));
     }
 
-    localStorage.setItem("village_profile", JSON.stringify(updated));
-
-    $("sideUser").textContent = "@" + username;
-    $("accountText").innerHTML =
-      `Signed in as <b>${escapeHtml(updated.name || "User")}</b>` +
-      `<br>@${escapeHtml(username)}` +
-      `<br>${escapeHtml(updated.email || currentUser.email || "")}`;
+    $("sideUser").textContent="@"+username;
+    $("accountText").innerHTML=
+      `Signed in as <b>${escapeHtml(profile.name)}</b>`+
+      `<br>@${escapeHtml(username)}`+
+      `<br>${escapeHtml(profile.email||"")}`;
 
     toast("Username updated.");
-  } catch (e) {
-    console.error("Username update error:", e);
-    toast(e?.message || "Could not update username.");
+  }catch(e){
+    console.error("Username change error:",e);
+    toast(e?.message || "Could not change username.");
   }
 }
 
